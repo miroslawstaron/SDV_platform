@@ -65,7 +65,7 @@ test('presentation navigation has delayed help and the added slides retain the o
  await page.mouse.move(0,0);
  for(const index of [7,8,9,10]){
   await page.evaluate(index=>(window as any).Reveal.slide(index),index);await page.clock.runFor(100);
-  const slide=page.locator('.slides>section.present');
+  const slide=page.locator('.slides section.present:not(.stack)');
   await expect(slide.locator('h2')).toContainText(['Captured images','How image similarity','Similarity warnings','Review similarity'][index-7]);
   const overflow=await slide.evaluate(element=>{
    const bounds=element.getBoundingClientRect();return {bottom:bounds.bottom,height:bounds.height,available:innerHeight-94};

@@ -141,11 +141,11 @@
     ['.architecture-caption', 'Selected communication contract or node filter, with the message update interval and expiry threshold where shown.'],
     ['.alert,[role="alert"],.result-fail', 'An error, warning or failed assertion requiring attention. Its text describes the current condition.'],
     ['.reveal .progress', 'Presentation progress. Click along this bar to move through the slides.'],
-    ['.reveal .slide-number', 'Current slide number and total slides. Click to open the slide overview.'],
+    ['.reveal .slide-number', 'Current main topic and detail slide, for example 3.1, followed by the 19 main topics. Click to open the slide overview.'],
     ['.reveal svg', element => element.getAttribute('aria-label') === 'Platform architecture' ? 'Platform services and their connections: browser views, API, ECUs, road simulator, recorder and signal gateway.' : 'Illustrative ECU communication flow. The test bench’s sequence view shows the actual recorded transmissions and receptions.'],
     ['.reveal .slides section h1,.reveal .slides section h2', 'Title of the current presentation topic. Use the arrow keys or navigation controls to move between slides; Esc opens the overview.'],
     ['.reveal .slides section p,.reveal .slides section li,.reveal .slides section dt,.reveal .slides section dd,.reveal .slides section td,.reveal .slides section th', element => `Presentation explanation: ${text(element)} Speaker notes (S) provide additional context and source references.`],
-    ['.deck-header nav>span', 'Use the arrow keys to move between slides, Esc for the overview, S for speaker notes and F for fullscreen.'],
+    ['.deck-header nav>span', 'Use left/right arrows for main topics, up/down for detail slides, Esc for the overview, S for speaker notes and F for fullscreen.'],
     ['.brand,.deck-brand,header img,.cover-layout img', 'Metriczone measurement lab identity: Measure. Understand. Improve.'],
     ['.header-meta,.tiny-label', 'The technologies or signal source used by this part of the measurement lab.'],
     ['footer', 'Platform context, source attribution and scope of the displayed vehicle or imagery.'],
@@ -239,4 +239,3 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
-

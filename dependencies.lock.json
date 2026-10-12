@@ -1,9 +1,18 @@
 {
-  "schema_version": "1.0",
-  "sumo": "Eclipse SUMO sumo Version 1.18.0",
-  "visual_identity": {
-    "logo_sha256": "433FC33A55C54170B45193B0A269A2EC14B16FE95F4A72B590F468F981D9E57C",
-    "source": "User supplied Metriczone measurement ecosystem logo; original file copied unchanged"
+  "vss_sha256": "BEF9AD501B38EDD60E7B903CB39BA5B8F0864A984595B3E901D6EFA3F06BDB70",
+  "osm_sha256": "D7CB47E69E6CE409AD6552F608D32709560205E08DC1A36C1CC934AC06BDF844",
+  "frontend_dependencies": {
+    "leaflet": "1.9.4",
+    "mapillary-js": "4.1.2",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "presentation": {
+    "adaptation": "Locally served Metriczone SDV guide with speaker notes and print layout",
+    "runtime_sha256": "AA1BBBF2617B23A623B23612CB3C5BDB63DE512E652BF20FCFA832B045D37844",
+    "repository": "https://github.com/hakimel/reveal.js",
+    "version": "6.0.2",
+    "license": "MIT"
   },
   "python_packages": [
     "annotated-types==0.8.0",
@@ -51,12 +60,50 @@
     "websockets==17.2",
     "wrapt==1.17.3"
   ],
+  "schema_version": "1.0",
   "instruments": {
+    "image": "sdv-instruments:local",
     "manifest_sha256": "3DC57C6AA370923EFBE5FFBE5CFE3812B4FA46007CB41AD31CF6053584E509C5",
-    "contract": "/?run={run_id}; GET /health; independent /api/v1 run stream",
-    "image": "sdv-instruments:local"
+    "contract": "/?run={run_id}; GET /health; independent /api/v1 run stream"
   },
-  "npm_lock_sha256": "09ABE86701DCF383BADDA0AB8599E059033A1D04FF20371E9F7A1EAE3696BC6E",
+  "images": [
+    {
+      "image": "sdv-python:local",
+      "id": "sha256:54bcea837c8beef95a160e0b2d2c72c5afaef6215a10a0db546b3f9094a2cc82",
+      "digests": [
+        "sdv-python@sha256:54bcea837c8beef95a160e0b2d2c72c5afaef6215a10a0db546b3f9094a2cc82"
+      ]
+    },
+    {
+      "image": "sdv-native:local",
+      "id": "sha256:b6cf023fb44364e805611389f981caadfce2d50e58b48affc6f1c96bf889137a",
+      "digests": [
+        "sdv-native@sha256:b6cf023fb44364e805611389f981caadfce2d50e58b48affc6f1c96bf889137a"
+      ]
+    },
+    {
+      "image": "sdv-platform-web",
+      "id": "sha256:537d3b064e6bff4d6d2cfad3c3401d9a5a1c248e40479285a7ada12af3d4232d",
+      "digests": [
+        "sdv-platform-web@sha256:537d3b064e6bff4d6d2cfad3c3401d9a5a1c248e40479285a7ada12af3d4232d"
+      ]
+    },
+    {
+      "image": "sdv-instruments:local",
+      "id": "sha256:d49912c05a0b4e3e28d52409374ecc7a89eb6896022b72461f7086c60a9e9025",
+      "digests": [
+        "sdv-instruments@sha256:d49912c05a0b4e3e28d52409374ecc7a89eb6896022b72461f7086c60a9e9025"
+      ]
+    },
+    {
+      "image": "ghcr.io/eclipse-kuksa/kuksa-databroker:0.7.1",
+      "id": "sha256:529d8c6d3cc223362667672978bcb8f92c4d356b25aedd336e7a2e004d7279bd",
+      "digests": [
+        "ghcr.io/eclipse-kuksa/kuksa-databroker@sha256:529d8c6d3cc223362667672978bcb8f92c4d356b25aedd336e7a2e004d7279bd"
+      ]
+    }
+  ],
+  "recorded_at": "2026-10-12T14:40:11.9177376Z",
   "frontend_dev_dependencies": {
     "@playwright/test": "1.64.0",
     "@types/leaflet": "1.9.17",
@@ -67,59 +114,12 @@
     "vite": "6.4.4",
     "vitest": "5.0.3"
   },
-  "frontend_dependencies": {
-    "leaflet": "1.9.4",
-    "mapillary-js": "4.1.2",
-    "react": "19.1.0",
-    "react-dom": "19.1.0"
+  "npm_lock_sha256": "09ABE86701DCF383BADDA0AB8599E059033A1D04FF20371E9F7A1EAE3696BC6E",
+  "sumo": "Eclipse SUMO sumo Version 1.18.0",
+  "visual_identity": {
+    "logo_sha256": "433FC33A55C54170B45193B0A269A2EC14B16FE95F4A72B590F468F981D9E57C",
+    "source": "User supplied Metriczone measurement ecosystem logo; original file copied unchanged"
   },
-  "presentation": {
-    "license": "MIT",
-    "runtime_sha256": "AA1BBBF2617B23A623B23612CB3C5BDB63DE512E652BF20FCFA832B045D37844",
-    "repository": "https://github.com/hakimel/reveal.js",
-    "adaptation": "Locally served Metriczone SDV guide with speaker notes and print layout",
-    "version": "6.0.2"
-  },
-  "images": [
-    {
-      "id": "sha256:54bcea837c8beef95a160e0b2d2c72c5afaef6215a10a0db546b3f9094a2cc82",
-      "image": "sdv-python:local",
-      "digests": [
-        "sdv-python@sha256:54bcea837c8beef95a160e0b2d2c72c5afaef6215a10a0db546b3f9094a2cc82"
-      ]
-    },
-    {
-      "id": "sha256:b6cf023fb44364e805611389f981caadfce2d50e58b48affc6f1c96bf889137a",
-      "image": "sdv-native:local",
-      "digests": [
-        "sdv-native@sha256:b6cf023fb44364e805611389f981caadfce2d50e58b48affc6f1c96bf889137a"
-      ]
-    },
-    {
-      "id": "sha256:444c56ecc0b1a7222f30c138016ad1b5dc4ab6acdc38be5ee0d1dfe5e0eac07b",
-      "image": "sdv-platform-web",
-      "digests": [
-        "sdv-platform-web@sha256:444c56ecc0b1a7222f30c138016ad1b5dc4ab6acdc38be5ee0d1dfe5e0eac07b"
-      ]
-    },
-    {
-      "id": "sha256:d49912c05a0b4e3e28d52409374ecc7a89eb6896022b72461f7086c60a9e9025",
-      "image": "sdv-instruments:local",
-      "digests": [
-        "sdv-instruments@sha256:d49912c05a0b4e3e28d52409374ecc7a89eb6896022b72461f7086c60a9e9025"
-      ]
-    },
-    {
-      "id": "sha256:529d8c6d3cc223362667672978bcb8f92c4d356b25aedd336e7a2e004d7279bd",
-      "image": "ghcr.io/eclipse-kuksa/kuksa-databroker:0.7.1",
-      "digests": [
-        "ghcr.io/eclipse-kuksa/kuksa-databroker@sha256:529d8c6d3cc223362667672978bcb8f92c4d356b25aedd336e7a2e004d7279bd"
-      ]
-    }
-  ],
-  "vss_sha256": "BEF9AD501B38EDD60E7B903CB39BA5B8F0864A984595B3E901D6EFA3F06BDB70",
-  "osm_sha256": "D7CB47E69E6CE409AD6552F608D32709560205E08DC1A36C1CC934AC06BDF844",
-  "recorded_at": "2026-10-12T13:39:59.7870150Z",
   "netconvert": {
     "package": "eclipse-sumo==1.18.0",
     "version": "Eclipse SUMO netconvert Version 1.18.0",

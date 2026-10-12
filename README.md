@@ -1,3 +1,5 @@
+ 
+
 # Metriczone · SDV measurement lab
 
 A containerized electric passenger car test bench with a live engineering dashboard, independent driver window, CAN FD and SOME/IP ECU communication, fault injection, and recorded replay.
@@ -49,7 +51,7 @@ Stopping preserves the `sdv-platform_sdv-data` Docker volume, including maps and
 
 ## Metriczone presentation and vehicle instruments
 
-The UI matches the Metriczone teal-and-white identity used in the 5G simulator, with the supplied original logo and “Measure. Understand. Improve.” tagline. The engineering header links to [How the SDV platform works](http://localhost:8080/presentation/), a 19-slide reveal.js presentation, including captured-image storage, pHash distance and similarity percentages, repeated-drive counters, the five-match warning and browsing saved comparisons. Its runtime, speaker notes and MIT license are served locally; arrow keys navigate, Esc opens the overview, S opens notes, and the Print / PDF link prepares printable slides.
+The UI matches the Metriczone teal-and-white identity used in the 5G simulator, with the supplied original logo and “Measure. Understand. Improve.” tagline. The engineering header links to [How the SDV platform works](http://localhost:8080/presentation/), a reveal.js presentation with 19 main slides and 52 vertical detail slides, including captured-image storage, pHash distance and similarity percentages, repeated-drive counters, the five-match warning and browsing saved comparisons. Details include dashboard screenshots, every Compose container’s contents and provenance, ECU signal contracts, imagery sources, route/replay/export tutorials and proposed research. Screenshot source metadata and any illustrative states are recorded in `web/public/presentation/screenshots/provenance.json`; click a screenshot to open its original resolution. `web/tools/capture-presentation.mjs` captures read-only saved-run examples and `web/tools/build-presentation.mjs` regenerates detail slides while preserving the main slides. Its runtime, speaker notes and MIT license are served locally; left/right arrow keys move between the 19 main topics, up/down explore their detail slides, Esc opens the overview, S opens notes, and the Print / PDF link prepares printable slides.
 
 Hover over a control, reading, map, diagram or warning for three seconds to see its explanation. The same help is available in the engineering dashboard, driver window, standalone instruments and presentation; focusing a control with the keyboard also shows help after three seconds. Moving away, clicking, scrolling or pressing Esc dismisses the explanation. Native tooltips are replaced with delayed help so they do not appear early.
 
@@ -129,6 +131,3 @@ Imagery road matching uses a 50 m route-station-distance bound and 20 m route-ge
 Use `docker compose ps` and `docker compose logs --tail 80 SERVICE`. Custom route downloads use the configured `OVERPASS_URL` first, then try the public VK Maps, Private.coffee and FOSSGIS Overpass providers without duplicates, with two bounded rounds for timeouts, connection failures and temporary provider errors. The default is VK Maps; the former `overpass.kumi.systems` endpoint timed out during verification. Failed jobs display the provider error and retain your pins so you can retry **Prepare route**. You can change `OVERPASS_URL` in `.env` and run `docker compose up -d --no-deps maps` to use a different primary provider. The bundled route and previously imported road regions work offline. A Mapillary authentication, quota, WebGL, or coverage failure affects visualization only. If the token is rejected, verify that it is the application's client token, edit `.env`, rerun the launcher, and reload the driver window. Missing BMS feedback blocks propulsion; stale controller commands cause the brake watchdog to request a controlled stop. A failed brake ECU can prevent that stop.
 
 API and dashboard ports bind only to localhost. ECU, broker, and storage services have no published ports. This is a trusted personal lab; do not expose it directly to an untrusted network.
-
-
-

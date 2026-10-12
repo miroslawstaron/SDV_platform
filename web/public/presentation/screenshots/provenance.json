@@ -1,0 +1,218 @@
+{
+  "captured_on": "2026-10-12",
+  "capture_method": "Screenshots of the actual UI; saved state and events displayed through an isolated browser replay stream. No recording, image capture or fault writes.",
+  "assets": {
+    "engineering-overview": {
+      "file": "screenshots/engineering-overview.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "route": "Gothenburg demonstration",
+      "sample_time": 8,
+      "kind": "recorded replay"
+    },
+    "engineering-route": {
+      "file": "screenshots/engineering-route.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "route": "Gothenburg demonstration",
+      "sample_time": 8,
+      "kind": "recorded replay"
+    },
+    "engineering-network": {
+      "file": "screenshots/engineering-network.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "route": "Gothenburg demonstration",
+      "sample_time": 8,
+      "kind": "recorded replay"
+    },
+    "architecture-contracts": {
+      "file": "screenshots/architecture-contracts.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "route": "Gothenburg demonstration",
+      "sample_time": 8,
+      "kind": "recorded replay"
+    },
+    "recordings-export": {
+      "file": "screenshots/recordings-export.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "route": "Gothenburg demonstration",
+      "sample_time": 8,
+      "kind": "recorded replay"
+    },
+    "signals-export-choice": {
+      "file": "screenshots/signals-export-choice.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "route": "Gothenburg demonstration",
+      "sample_time": 8,
+      "kind": "recorded replay",
+      "description": "Keyboard focus highlights the All signals CSV export link; no download or server write was performed."
+    },
+    "communication-events": {
+      "file": "screenshots/communication-events.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "route": "Gothenburg demonstration",
+      "sample_time": 8,
+      "kind": "recorded replay"
+    },
+    "replay-controls": {
+      "file": "screenshots/replay-controls.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "route": "Gothenburg demonstration",
+      "sample_time": 8,
+      "kind": "recorded replay"
+    },
+    "rerun-configuration": {
+      "file": "screenshots/rerun-configuration.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "route": "Gothenburg demonstration",
+      "sample_time": 8,
+      "kind": "recorded replay",
+      "description": "Saved configuration selected; rerun button focused without starting a new run."
+    },
+    "truth-normal": {
+      "file": "screenshots/truth-normal.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "route": "Gothenburg demonstration",
+      "sample_time": 8,
+      "kind": "recorded replay",
+      "description": "Ground truth and reported speed from saved normal-drive samples; tick packets populate the UI chart locally."
+    },
+    "truth-substituted": {
+      "file": "screenshots/truth-substituted.png",
+      "run_id": "da2ea0a8-63c6-4383-8098-17faf9725653",
+      "sample_time": 2,
+      "kind": "recorded sensor substitution",
+      "fault": {
+        "id": "6eb85726-bcf8-4da4-bc0c-b5b8fbc821ff",
+        "module": "sensor",
+        "kind": "substitute",
+        "at": 1,
+        "duration": 2,
+        "message_id": null,
+        "signal": "Speed",
+        "value": 80,
+        "delay_ms": 300
+      }
+    },
+    "fault-configuration": {
+      "file": "screenshots/fault-configuration.png",
+      "run_id": "da2ea0a8-63c6-4383-8098-17faf9725653",
+      "sample_time": 2,
+      "kind": "recorded fault with matching settings shown",
+      "fault": {
+        "id": "6eb85726-bcf8-4da4-bc0c-b5b8fbc821ff",
+        "module": "sensor",
+        "kind": "substitute",
+        "at": 1,
+        "duration": 2,
+        "message_id": null,
+        "signal": "Speed",
+        "value": 80,
+        "delay_ms": 300
+      },
+      "description": "Form settings shown for explanation; no fault was injected into the finished recording. Active badge is reconstructed from its saved schedule."
+    },
+    "controller-outage": {
+      "file": "screenshots/controller-outage.png",
+      "run_id": "c9936bfa-e7bd-40f5-a850-762742ef8505",
+      "sample_time": 1.1,
+      "kind": "recorded controller outage",
+      "fault": {
+        "id": "cf696ed8-b28c-4e4d-8a8b-c06ebaf23fe7",
+        "module": "controller",
+        "kind": "stop",
+        "at": 1,
+        "duration": 2,
+        "message_id": null,
+        "signal": null,
+        "value": null,
+        "delay_ms": 300
+      }
+    },
+    "similarity-dashboard": {
+      "file": "screenshots/similarity-dashboard.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "station_index": 14,
+      "provider_image_id": "269127888831011",
+      "source_captured_at": 1685210250277,
+      "lat": 57.70037573903,
+      "lng": 11.96539732961,
+      "phash": "da99bc4ea6aa82c6",
+      "kind": "saved Mapillary source image; browser gallery screenshot"
+    },
+    "similarity-exact": {
+      "file": "screenshots/similarity-exact.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "station_index": 14,
+      "provider_image_id": "269127888831011",
+      "source_captured_at": 1685210250277,
+      "lat": 57.70037573903,
+      "lng": 11.96539732961,
+      "phash": "da99bc4ea6aa82c6",
+      "kind": "saved Mapillary source image; browser gallery screenshot",
+      "description": "Cropped to source metadata, similarity summary and the first three comparisons so exact repeats and a below-threshold example remain legible."
+    },
+    "image-provenance": {
+      "file": "screenshots/image-provenance.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "station_index": 14,
+      "provider_image_id": "269127888831011",
+      "source_captured_at": 1685210250277,
+      "lat": 57.70037573903,
+      "lng": 11.96539732961,
+      "phash": "da99bc4ea6aa82c6",
+      "kind": "saved Mapillary source image; browser gallery screenshot"
+    },
+    "similarity-matching-only": {
+      "file": "screenshots/similarity-matching-only.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "station_index": 14,
+      "provider_image_id": "269127888831011",
+      "source_captured_at": 1685210250277,
+      "lat": 57.70037573903,
+      "lng": 11.96539732961,
+      "phash": "da99bc4ea6aa82c6",
+      "kind": "saved Mapillary source image; browser gallery screenshot"
+    },
+    "driver-view": {
+      "file": "screenshots/driver-view.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "route": "Gothenburg demonstration",
+      "sample_time": 8,
+      "kind": "recorded replay",
+      "street_view_available": true
+    },
+    "driver-instruments": {
+      "file": "screenshots/driver-instruments.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "route": "Gothenburg demonstration",
+      "sample_time": 8,
+      "kind": "recorded replay",
+      "description": "Independent instrument frame using saved simulator ground truth."
+    },
+    "imagery-example": {
+      "file": "screenshots/imagery-example.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "route": "Gothenburg demonstration",
+      "sample_time": 8,
+      "kind": "recorded replay"
+    },
+    "driver-similarity-warning": {
+      "file": "screenshots/driver-similarity-warning.png",
+      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
+      "route": "Gothenburg demonstration",
+      "sample_time": 8,
+      "kind": "illustrative warning state on recorded driver view",
+      "description": "Only the comparison response is staged at five matches to illustrate the warning. No captures or hashes are inserted."
+    },
+    "route-pins": {
+      "file": "screenshots/route-pins.png",
+      "kind": "illustrative route-selection UI",
+      "description": "Example map pins selected in the browser; no route preparation request was submitted."
+    },
+    "route-prepared": {
+      "file": "screenshots/route-prepared.png",
+      "kind": "actual bundled prepared route",
+      "route": "Gothenburg demonstration",
+      "description": "Bundled route loaded from the real API; screenshot illustrates reviewing a prepared route before Start drive."
+    }
+  }
+}

@@ -51,18 +51,24 @@ test('linked reveal.js deck loads locally, navigates and fits every slide',async
  await expect(page.locator('header img[alt="Metriczone measurement ecosystem"]')).toBeVisible();
  await expect(page.getByRole('link',{name:'Presentation ↗'})).toHaveAttribute('href','/presentation/');
  await page.goto('/presentation/');
- await expect(page.locator('.slides section.present h1')).toHaveText('Inside a softwaredefined vehicle');
- await page.keyboard.press('ArrowRight');await expect(page.locator('.slides section.present h2')).toHaveText('A short drive through Gothenburg');
+ await expect(page.locator('.slides section.present h1')).toHaveText('Inside a software-defined vehicle');
+ await page.keyboard.press('ArrowRight');await expect(page.locator('.slides section.present:not(.stack) h2')).toHaveText('A short drive through Gothenburg');
  const count=await page.locator('.slides>section').count();expect(count).toBe(19);
  await expect(page.locator('.slides h2').filter({hasText:'Captured images and pHash matching'})).toHaveCount(1);
  await expect(page.locator('.slides h2').filter({hasText:'Similarity warnings during driving'})).toHaveCount(1);
- for(let index=0;index<count;index++){
-  await page.evaluate(index=>(window as any).Reveal.slide(index),index);
-  const overflow=await page.locator('.slides>section.present').evaluate(section=>{
-   const bounds=section.getBoundingClientRect();return {height:bounds.height,viewport:innerHeight-94,width:bounds.width,viewportWidth:innerWidth};
+ const chapters=await page.locator('.slides>section').evaluateAll(sections=>sections.map(section=>section.querySelectorAll(':scope>section').length||1));
+ expect(chapters.reduce((sum,n)=>sum+n,0)).toBe(71);
+ expect(chapters[2]).toBe(17); // Docker overview plus each of the 16 services.
+ await page.evaluate(()=>(window as any).Reveal.slide(1,1));
+ await expect(page.locator('.slide-number')).toHaveText('2.1 / 19');
+ for(let index=0;index<count;index++)for(let vertical=0;vertical<chapters[index];vertical++){
+  await page.evaluate(([h,v])=>(window as any).Reveal.slide(h,v),[index,vertical]);
+  const overflow=await page.evaluate(()=>{
+   const section=(window as any).Reveal.getCurrentSlide(),bounds=section.getBoundingClientRect();
+   return {height:bounds.height,viewport:innerHeight-94,width:bounds.width,viewportWidth:innerWidth};
   });
-  expect(overflow.height,`slide ${index+1} height`).toBeLessThanOrEqual(overflow.viewport+3);
-  expect(overflow.width,`slide ${index+1} width`).toBeLessThanOrEqual(overflow.viewportWidth+3);
+  expect(overflow.height,`slide ${index+1}.${vertical} height`).toBeLessThanOrEqual(overflow.viewport+3);
+  expect(overflow.width,`slide ${index+1}.${vertical} width`).toBeLessThanOrEqual(overflow.viewportWidth+3);
  }
  await page.goto('/presentation/?print-pdf');await expect(page.locator('html')).toHaveClass(/print-pdf/);
 });
