@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "network": "vehicle-can",
+  "transport": "SIL Kit functional CAN FD; broadcast delivery, observed reception per participant",
+  "update_period_ms": 50,
+  "stale_threshold_ms": 200,
+  "dbc": "vehicle.dbc",
+  "messages": [
+    {"id": 256, "name": "Sensors", "producer": "sensor", "consumers": ["controller"], "length": 32, "vss": {"Speed": "Vehicle.Speed", "Latitude": "Vehicle.CurrentLocation.Latitude", "Longitude": "Vehicle.CurrentLocation.Longitude"}},
+    {"id": 272, "name": "Battery", "producer": "bms", "consumers": ["powertrain", "controller"], "length": 32, "vss": {"Charge": "Vehicle.Powertrain.TractionBattery.StateOfCharge.Current"}},
+    {"id": 512, "name": "Commands", "producer": "controller", "consumers": ["powertrain", "brake", "lane"], "length": 16},
+    {"id": 528, "name": "Propulsion", "producer": "powertrain", "consumers": ["plant"], "length": 16},
+    {"id": 544, "name": "Braking", "producer": "brake", "consumers": ["plant"], "length": 16},
+    {"id": 560, "name": "LaneAction", "producer": "lane", "consumers": ["plant"], "length": 8}
+  ],
+  "someip": {"producer": "navigation", "consumer": "controller", "service": "0x1234", "instance": "0x0001", "major_version": 1, "minor_version": 0, "event": "0x8001", "eventgroup": "0x0001", "get_intent_method": "0x0001", "transport": "UDP port 30509, discovery multicast 224.224.224.245:30490", "serialization": "UTF-8 JSON object", "payload": {"version": 1, "sequence": "uint16", "target_speed": "metres/second", "lane_request": "-1,0,+1", "remaining": "metres"}},
+  "extension_namespace": "Simulation.*; unmapped demo values remain in the signal catalog rather than inventing VSS standard paths"
+}

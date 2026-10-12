@@ -1,0 +1,71 @@
+<?xml version='1.0' encoding='utf-8'?>
+<osm version="0.6">
+  <note>OpenStreetMap contributors, ODbL. Extracted 2026-10-12 from a Gothenburg Overpass road download. These two ways reproduce the Ubuntu SUMO 1.18 getConvAngle assertion.</note>
+  <node id="1716689005" lat="57.6893324" lon="11.9932632" />
+  <node id="301653524" lat="57.6950356" lon="11.9860291" />
+  <node id="982996458" lat="57.6935824" lon="11.9862916" />
+  <node id="10686768851" lat="57.6950836" lon="11.9858111" />
+  <node id="982996419" lat="57.6951108" lon="11.9858491" />
+  <node id="10686768850" lat="57.6951213" lon="11.9859145" />
+  <node id="982996379" lat="57.6939072" lon="11.9862277" />
+  <node id="982996377" lat="57.6949612" lon="11.9860145" />
+  <node id="302364484" lat="57.6893760" lon="11.9931611" />
+  <node id="302364482" lat="57.6894594" lon="11.9928539" />
+  <node id="302364490" lat="57.6886611" lon="11.9937701" />
+  <node id="10686768849" lat="57.6950823" lon="11.9860219" />
+  <node id="10132075332" lat="57.6888273" lon="11.9936602" />
+  <node id="10132075333" lat="57.6888869" lon="11.9936119" />
+  <node id="10132075338" lat="57.6887336" lon="11.9937257" />
+  <node id="982996438" lat="57.6950099" lon="11.9858231" />
+  <node id="301653510" lat="57.6934260" lon="11.9863458" />
+  <node id="302364486" lat="57.6892708" lon="11.9933311" />
+  <node id="982996423" lat="57.6951111" lon="11.9859758" />
+  <node id="10686768852" lat="57.6949095" lon="11.9860250" />
+  <node id="10132075329" lat="57.6890683" lon="11.9934887" />
+  <node id="10132075325" lat="57.6887744" lon="11.9936930" />
+  <node id="1300365701" lat="57.6949892" lon="11.9858657" />
+  <node id="982996357" lat="57.6950491" lon="11.9858006" />
+  <way id="27473361">
+    <nd ref="301653510" />
+    <nd ref="982996458" />
+    <nd ref="982996379" />
+    <nd ref="10686768852" />
+    <nd ref="982996377" />
+    <nd ref="1300365701" />
+    <nd ref="982996438" />
+    <nd ref="982996357" />
+    <nd ref="10686768851" />
+    <nd ref="982996419" />
+    <nd ref="10686768850" />
+    <nd ref="982996423" />
+    <nd ref="10686768849" />
+    <nd ref="301653524" />
+    <nd ref="982996377" />
+    <tag k="cycleway:both" v="no" />
+    <tag k="highway" v="residential" />
+    <tag k="lane_markings" v="no" />
+    <tag k="lit" v="yes" />
+    <tag k="maxspeed" v="50" />
+    <tag k="name" v="Lundgrensgatan" />
+    <tag k="sidewalk" v="both" />
+    <tag k="sidewalk:left:surface" v="dirt" />
+    <tag k="sidewalk:right:surface" v="asphalt" />
+    <tag k="smoothness" v="good" />
+    <tag k="surface" v="asphalt" />
+  </way>
+  <way id="27544239">
+    <nd ref="302364482" />
+    <nd ref="302364484" />
+    <nd ref="1716689005" />
+    <nd ref="302364486" />
+    <nd ref="10132075329" />
+    <nd ref="10132075333" />
+    <nd ref="10132075332" />
+    <nd ref="10132075325" />
+    <nd ref="10132075338" />
+    <nd ref="302364490" />
+    <tag k="highway" v="residential" />
+    <tag k="maxspeed" v="50" />
+    <tag k="name" v="Norra Krokslättsgatan" />
+  </way>
+</osm>

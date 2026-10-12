@@ -1,0 +1,1 @@
+{"route_id":"gothenburg-demo","seed":42,"duration":15,"faults":[{"module":"sensor","kind":"substitute","signal":"Speed","value":80,"at":5,"duration":3}],"assertions":[{"kind":"no_recorder_loss"}]}

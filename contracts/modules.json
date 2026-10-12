@@ -1,0 +1,9 @@
+[
+ {"schema_version":"1.0","identity":"navigation","role":"navigation","image":"sdv-native:local","endpoint":"http://navigation:8000","health_endpoint":"/health","application_command":"python3 -m sdv.application","publishes":["SOME/IP 0x1234.0001.8001"],"consumes":["environment route"]},
+ {"schema_version":"1.0","identity":"controller","role":"controller","image":"sdv-native:local","endpoint":"http://controller:8000","health_endpoint":"/health","application_command":"python3 -m sdv.application","publishes":["CAN 0x200"],"consumes":["CAN 0x100","CAN 0x110","SOME/IP 0x1234.0001.8001"]},
+ {"schema_version":"1.0","identity":"powertrain","role":"powertrain","image":"sdv-native:local","endpoint":"http://powertrain:8000","health_endpoint":"/health","application_command":"python3 -m sdv.application","publishes":["CAN 0x210"],"consumes":["CAN 0x200","CAN 0x110"]},
+ {"schema_version":"1.0","identity":"brake","role":"brake","image":"sdv-native:local","endpoint":"http://brake:8000","health_endpoint":"/health","application_command":"python3 -m sdv.application","publishes":["CAN 0x220"],"consumes":["CAN 0x200"]},
+ {"schema_version":"1.0","identity":"lane","role":"lane","image":"sdv-native:local","endpoint":"http://lane:8000","health_endpoint":"/health","application_command":"python3 -m sdv.application","publishes":["CAN 0x230"],"consumes":["CAN 0x200"]},
+ {"schema_version":"1.0","identity":"sensor","role":"sensor","image":"sdv-native:local","endpoint":"http://sensor:8000","health_endpoint":"/health","application_command":"python3 -m sdv.application","publishes":["CAN 0x100"],"consumes":["environment state"]},
+ {"schema_version":"1.0","identity":"bms","role":"bms","image":"sdv-native:local","endpoint":"http://bms:8000","health_endpoint":"/health","application_command":"python3 -m sdv.application","publishes":["CAN 0x110"],"consumes":["environment battery"]}
+]

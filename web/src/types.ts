@@ -1,0 +1,10 @@
+export type Point={lat:number;lng:number};
+export type VehicleState=Point & {time:number;heading:number;speed:number;acceleration:number;lane_index:number;remaining:number;distance:number;progress:number;charge_pct:number;energy_wh:number;power_w:number;consumed_wh:number;regenerated_wh:number;arrived:boolean;speed_limit:number;red_light:boolean};
+export type Route={id:string;name:string;geometry:Point[];roads?:Point[][];start:Point;destination:Point;distance:number;attribution:string};
+export type Event={event_id?:number;run_id?:string;module:string;source?:string;monotonic_ns?:number;protocol:string;kind:string;sim_time:number;message_id?:number;raw?:string;decoded?:Record<string,number|string|boolean>;sequence?:number;error?:string};
+export type SignalContract={name:string;unit:string;consumers:string[];vss?:string};
+export type MessageContract={id:number;name:string;producer:string;consumers:string[];signals:SignalContract[]};
+export type ContractCatalog={messages:MessageContract[];update_period_ms:number;stale_threshold_ms:number;someip:{producer:string;consumer:string;service:string;event:string;payload:Record<string,string|number>}};
+export type Run={id:string;status:string;time:number;recording_valid:boolean;route:Route;configuration:{route_id:string;vehicle:Record<string,number>;faults:Fault[];seed:number;duration:number;assertions:{kind:string;value:number}[]};results:{kind:string;passed:boolean;observed:number|boolean}[];error?:string};
+export type Fault={id?:string;module:string;kind:string;duration:number;at:number;signal?:string;value?:number;delay_ms?:number};
+export type Packet={type:string;run:Run;state:VehicleState|null;events?:Event[];signals?:Record<string,number>;health?:Record<string,{application:string;error?:string}>;faults?:Fault[];display_omitted?:number;cursor?:number};

@@ -1,0 +1,45 @@
+VERSION "SDV demo 1.0"
+NS_ :
+BS_:
+BU_: sensor bms controller powertrain brake lane plant
+
+BO_ 256 Sensors: 32 sensor
+ SG_ Speed : 0|16@1+ (0.01,0) [0|200] "m/s" controller
+ SG_ Latitude : 16|32@1- (0.0000001,0) [-90|90] "deg" controller
+ SG_ Longitude : 48|32@1- (0.0000001,0) [-180|180] "deg" controller
+ SG_ Heading : 80|16@1+ (0.01,0) [0|360] "deg" controller
+ SG_ Remaining : 96|32@1+ (0.01,0) [0|100000] "m" controller
+ SG_ SpeedLimit : 128|16@1+ (0.01,0) [0|200] "m/s" controller
+ SG_ LightDistance : 144|16@1+ (0.1,0) [0|6553.5] "m" controller
+ SG_ RedLight : 160|1@1+ (1,0) [0|1] "" controller
+ SG_ LaneIndex : 168|8@1+ (1,0) [0|255] "" controller
+ SG_ Sequence : 176|16@1+ (1,0) [0|65535] "" controller
+
+BO_ 272 Battery: 32 bms
+ SG_ Charge : 0|16@1+ (0.01,0) [0|100] "%" powertrain,controller
+ SG_ Energy : 16|32@1+ (0.01,0) [0|1000000] "Wh" controller
+ SG_ Power : 48|32@1- (1,0) [-1000000|1000000] "W" controller
+ SG_ Consumed : 80|32@1+ (0.01,0) [0|1000000] "Wh" controller
+ SG_ Regenerated : 112|32@1+ (0.01,0) [0|1000000] "Wh" controller
+ SG_ PropulsionLimit : 144|16@1+ (0.0001,0) [0|1] "" powertrain
+ SG_ LowBattery : 160|1@1+ (1,0) [0|1] "" controller
+ SG_ Sequence : 176|16@1+ (1,0) [0|65535] "" controller
+
+BO_ 512 Commands: 16 controller
+ SG_ Acceleration : 0|16@1+ (0.001,0) [0|6] "m/s2" powertrain
+ SG_ Deceleration : 16|16@1+ (0.001,0) [0|6] "m/s2" brake
+ SG_ LaneRequest : 32|8@1- (1,0) [-1|1] "" lane
+ SG_ TargetSpeed : 40|16@1+ (0.01,0) [0|200] "m/s" plant
+ SG_ Sequence : 64|16@1+ (1,0) [0|65535] "" plant
+
+BO_ 528 Propulsion: 16 powertrain
+ SG_ Acceleration : 0|16@1+ (0.001,0) [0|6] "m/s2" plant
+ SG_ Sequence : 64|16@1+ (1,0) [0|65535] "" plant
+
+BO_ 544 Braking: 16 brake
+ SG_ Deceleration : 0|16@1+ (0.001,0) [0|6] "m/s2" plant
+ SG_ Sequence : 64|16@1+ (1,0) [0|65535] "" plant
+
+BO_ 560 LaneAction: 8 lane
+ SG_ LaneRequest : 0|8@1- (1,0) [-1|1] "" plant
+ SG_ Sequence : 32|16@1+ (1,0) [0|65535] "" plant

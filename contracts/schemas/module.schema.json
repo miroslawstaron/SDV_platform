@@ -1,0 +1,74 @@
+{
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "identity": {
+      "title": "Identity",
+      "type": "string"
+    },
+    "image": {
+      "title": "Image",
+      "type": "string"
+    },
+    "role": {
+      "enum": [
+        "navigation",
+        "controller",
+        "powertrain",
+        "brake",
+        "lane",
+        "sensor",
+        "bms"
+      ],
+      "title": "Role",
+      "type": "string"
+    },
+    "endpoint": {
+      "title": "Endpoint",
+      "type": "string"
+    },
+    "health_endpoint": {
+      "default": "/health",
+      "title": "Health Endpoint",
+      "type": "string"
+    },
+    "application_command": {
+      "default": "python3 -m sdv.application",
+      "title": "Application Command",
+      "type": "string"
+    },
+    "publishes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Publishes",
+      "type": "array"
+    },
+    "consumes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Consumes",
+      "type": "array"
+    },
+    "configuration": {
+      "additionalProperties": true,
+      "title": "Configuration",
+      "type": "object"
+    }
+  },
+  "required": [
+    "identity",
+    "image",
+    "role",
+    "endpoint",
+    "publishes",
+    "consumes"
+  ],
+  "title": "ModuleManifest",
+  "type": "object"
+}

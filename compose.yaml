@@ -1,0 +1,130 @@
+name: sdv-platform
+x-worker: &worker
+  image: sdv-native:local
+  init: true
+  restart: unless-stopped
+  volumes:
+    - sdv-data:/data
+  depends_on:
+    registry:
+      condition: service_started
+  healthcheck:
+    test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+    interval: 10s
+    timeout: 5s
+    start_period: 60s
+    retries: 12
+
+services:
+  api:
+    image: sdv-python:local
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    init: true
+    restart: unless-stopped
+    ports: ["127.0.0.1:8000:8000"]
+    volumes: ["sdv-data:/data"]
+    environment:
+      MAPILLARY_ACCESS_TOKEN: ${MAPILLARY_ACCESS_TOKEN:-}
+    depends_on:
+      recorder: {condition: service_healthy}
+      maps: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  registry:
+    image: sdv-native:local
+    build:
+      context: .
+      dockerfile: native/Dockerfile
+      additional_contexts:
+        python-runtime: service:api
+    init: true
+    restart: unless-stopped
+    command: [sil-kit-registry, --listen-uri, "silkit://0.0.0.0:8500"]
+  plant:
+    <<: *worker
+    environment: {ROLE: plant}
+  sensor:
+    <<: *worker
+    environment: {ROLE: sensor}
+  bms:
+    <<: *worker
+    environment: {ROLE: bms}
+  navigation:
+    <<: *worker
+    environment: {ROLE: navigation}
+  controller:
+    <<: *worker
+    environment:
+      ROLE: controller
+      APPLICATION_COMMAND: ${CONTROLLER_COMMAND:-python3 -m sdv.application}
+  powertrain:
+    <<: *worker
+    environment: {ROLE: powertrain}
+  brake:
+    <<: *worker
+    environment: {ROLE: brake}
+  lane:
+    <<: *worker
+    environment: {ROLE: lane}
+  recorder:
+    image: sdv-python:local
+    init: true
+    command: [uvicorn, sdv.recorder:app, --host, 0.0.0.0, --port, "8000"]
+    volumes: ["sdv-data:/data"]
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      retries: 10
+  maps:
+    image: sdv-python:local
+    init: true
+    command: [uvicorn, sdv.maps:app, --host, 0.0.0.0, --port, "8000"]
+    environment:
+      OVERPASS_URL: ${OVERPASS_URL:-https://maps.mail.ru/osm/tools/overpass/api/interpreter}
+    volumes: ["sdv-data:/data"]
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      start_period: 30s
+      retries: 10
+  kuksa:
+    image: ghcr.io/eclipse-kuksa/kuksa-databroker:0.7.1
+    command: [--insecure, --vss, /contracts/vss.json]
+    volumes: ["./contracts:/contracts:ro"]
+  gateway:
+    image: sdv-python:local
+    init: true
+    command: [python3, -m, sdv.gateway]
+    depends_on: [kuksa, api]
+  instruments:
+    image: sdv-instruments:local
+    build: {context: ., dockerfile: instruments/Dockerfile}
+    init: true
+    restart: unless-stopped
+    ports: ["127.0.0.1:8081:80"]
+    depends_on: [api]
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1/health]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+  web:
+    build: {context: ./web}
+    init: true
+    ports: ["127.0.0.1:8080:80"]
+    depends_on:
+      api: {condition: service_started}
+      instruments: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1/health]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  sdv-data:

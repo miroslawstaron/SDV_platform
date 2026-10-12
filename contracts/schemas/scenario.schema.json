@@ -1,0 +1,242 @@
+{
+  "$defs": {
+    "Assertion": {
+      "properties": {
+        "kind": {
+          "enum": [
+            "arrived",
+            "max_speed",
+            "min_charge",
+            "stopped",
+            "no_recorder_loss"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "value": {
+          "default": 0,
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "Assertion",
+      "type": "object"
+    },
+    "Fault": {
+      "properties": {
+        "id": {
+          "default": "",
+          "title": "Id",
+          "type": "string"
+        },
+        "module": {
+          "enum": [
+            "navigation",
+            "controller",
+            "powertrain",
+            "brake",
+            "lane",
+            "sensor",
+            "bms"
+          ],
+          "title": "Module",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "delay",
+            "drop",
+            "duplicate",
+            "freeze",
+            "substitute",
+            "stop",
+            "withdraw"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "at": {
+          "default": 0,
+          "maximum": 900,
+          "minimum": 0,
+          "title": "At",
+          "type": "number"
+        },
+        "duration": {
+          "default": 5,
+          "exclusiveMinimum": 0,
+          "maximum": 900,
+          "title": "Duration",
+          "type": "number"
+        },
+        "message_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message Id"
+        },
+        "signal": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Signal"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "delay_ms": {
+          "default": 300,
+          "maximum": 5000,
+          "minimum": 0,
+          "title": "Delay Ms",
+          "type": "number"
+        }
+      },
+      "required": [
+        "module",
+        "kind"
+      ],
+      "title": "Fault",
+      "type": "object"
+    },
+    "Vehicle": {
+      "properties": {
+        "length": {
+          "default": 4.5,
+          "exclusiveMinimum": 0,
+          "maximum": 8,
+          "title": "Length",
+          "type": "number"
+        },
+        "width": {
+          "default": 1.8,
+          "exclusiveMinimum": 0,
+          "maximum": 3,
+          "title": "Width",
+          "type": "number"
+        },
+        "mass": {
+          "default": 1800,
+          "maximum": 4000,
+          "minimum": 500,
+          "title": "Mass",
+          "type": "number"
+        },
+        "capacity_wh": {
+          "default": 60000,
+          "exclusiveMinimum": 0,
+          "maximum": 200000,
+          "title": "Capacity Wh",
+          "type": "number"
+        },
+        "charge_pct": {
+          "default": 80,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Charge Pct",
+          "type": "number"
+        },
+        "max_accel": {
+          "default": 2.5,
+          "exclusiveMinimum": 0,
+          "maximum": 6,
+          "title": "Max Accel",
+          "type": "number"
+        },
+        "normal_decel": {
+          "default": 3,
+          "exclusiveMinimum": 0,
+          "maximum": 6,
+          "title": "Normal Decel",
+          "type": "number"
+        },
+        "emergency_decel": {
+          "default": 6,
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "Emergency Decel",
+          "type": "number"
+        },
+        "max_speed": {
+          "default": 36.11111111111111,
+          "exclusiveMinimum": 0,
+          "maximum": 55,
+          "title": "Max Speed",
+          "type": "number"
+        }
+      },
+      "title": "Vehicle",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "route_id": {
+      "default": "gothenburg-demo",
+      "title": "Route Id",
+      "type": "string"
+    },
+    "vehicle": {
+      "$ref": "#/$defs/Vehicle"
+    },
+    "seed": {
+      "default": 42,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "modules": {
+      "additionalProperties": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Modules",
+      "type": "object"
+    },
+    "duration": {
+      "default": 900,
+      "exclusiveMinimum": 0,
+      "maximum": 900,
+      "title": "Duration",
+      "type": "number"
+    },
+    "faults": {
+      "items": {
+        "$ref": "#/$defs/Fault"
+      },
+      "title": "Faults",
+      "type": "array"
+    },
+    "assertions": {
+      "items": {
+        "$ref": "#/$defs/Assertion"
+      },
+      "title": "Assertions",
+      "type": "array"
+    }
+  },
+  "title": "RunRequest",
+  "type": "object"
+}

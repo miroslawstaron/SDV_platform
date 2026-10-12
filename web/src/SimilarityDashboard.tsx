@@ -1,0 +1,53 @@
+import {useEffect,useState} from 'react';
+import {Brand} from './Brand';
+import {ImageSimilarity} from './ViewSimilarity';
+
+type Capture={run_id:string;station_index:number;image_id:string;provider_image_id:string;phash:string;sim_time:number;lat:number;lng:number;captured_at:number|null;bytes?:number};
+type Comparison=Capture & {distance:number;similarity_pct:number;is_match:boolean;exact_image:boolean};
+type Gallery={total:number;items:Capture[];runs:{run_id:string;captures:number}[];database_images:number;database_captures:number};
+type Comparisons={comparisons:Comparison[];comparison_total:number;similar_count:number;similar_image_count:number;nearest_similarity_pct:number|null;too_similar:boolean};
+const PAGE_SIZE=24,COMPARE_SIZE=12;
+const captureKey=(capture:Capture)=>`${capture.run_id}:${capture.station_index}`;
+
+export function SimilarityDashboard(){
+ const [runId,setRunId]=useState(()=>new URLSearchParams(location.search).get('run')||''),[offset,setOffset]=useState(0),[gallery,setGallery]=useState<Gallery>(),[selected,setSelected]=useState<Capture>(),[comparisonOffset,setComparisonOffset]=useState(0),[matchesOnly,setMatchesOnly]=useState(false),[comparisons,setComparisons]=useState<Comparisons>(),[error,setError]=useState(''),[comparisonError,setComparisonError]=useState(''),[refresh,setRefresh]=useState(0),[loading,setLoading]=useState(true);
+ useEffect(()=>{
+  const controller=new AbortController();let dead=false;setLoading(true);setError('');setGallery(undefined);setSelected(undefined);
+  const params=new URLSearchParams({offset:String(offset),limit:String(PAGE_SIZE)});if(runId)params.set('run_id',runId);
+  fetch(`/api/v1/image-captures?${params}`,{signal:controller.signal}).then(async response=>{
+   if(!response.ok)throw new Error('Captured images could not load. Use Refresh images to retry.');return response.json() as Promise<Gallery>;
+  }).then(value=>{if(!dead){setGallery(value);setSelected(value.items[0]);setComparisonOffset(0)}})
+   .catch(error=>{if(!dead)setError(error.message)}).finally(()=>{if(!dead)setLoading(false)});
+  return()=>{dead=true;controller.abort()};
+ },[runId,offset,refresh]);
+ const key=selected?captureKey(selected):'';
+ useEffect(()=>{
+  setComparisons(undefined);setComparisonError('');if(!selected)return;
+  const controller=new AbortController();let dead=false;
+  const params=new URLSearchParams({offset:String(comparisonOffset),limit:String(COMPARE_SIZE),matches_only:String(matchesOnly)});
+  fetch(`/api/v1/image-captures/${encodeURIComponent(selected.run_id)}/${selected.station_index}/similarity?${params}`,{signal:controller.signal})
+   .then(async response=>{if(!response.ok)throw new Error('Image comparisons could not load. Select another capture or refresh to retry.');return response.json() as Promise<Comparisons>})
+   .then(value=>{if(!dead)setComparisons(value)}).catch(error=>{if(!dead)setComparisonError(error.message)});
+  return()=>{dead=true;controller.abort()};
+ },[key,comparisonOffset,matchesOnly,refresh]);
+ const select=(capture:Capture)=>{setSelected(capture);setComparisonOffset(0)};
+ function filter(value:string){setRunId(value);setOffset(0);const url=new URL(location.href);if(value)url.searchParams.set('run',value);else url.searchParams.delete('run');history.replaceState(null,'',url)}
+ return <div className="dashboard similarity-dashboard"><header><Brand subtitle="IMAGE SIMILARITY"/><nav><a href="/">Engineering dashboard ↗</a><a href="/presentation/" target="_blank" rel="noreferrer">Presentation ↗</a></nav></header>
+  <main><div className="page-title"><div><div className="eyebrow">CAPTURE HISTORY</div><h1>Image similarity dashboard</h1><p>Browse each drive’s captured images and compare them with captures across all drives.</p></div><button data-help="Reload captured images and comparison results after a drive. Browsing and refreshing never create captures." onClick={()=>setRefresh(value=>value+1)}>Refresh images</button></div>
+   <div className="capture-toolbar"><label>Drive <select aria-label="Image capture drive" data-help="Filter the image gallery to one drive or show all drives. Comparisons still include captures from every drive, including retained images from deleted vehicle recordings." value={runId} onChange={event=>filter(event.target.value)}><option value="">All drives</option>{runId&&!gallery?.runs.some(run=>run.run_id===runId)&&<option value={runId}>{runId.slice(0,8)}</option>}{gallery?.runs.map(run=><option key={run.run_id} value={run.run_id}>{run.run_id.slice(0,8)} · {run.captures} captures</option>)}</select></label><span data-help="Each run and distance station is one capture. Identical image bytes are stored once, so unique images and capture observations have different totals.">{gallery?`${gallery.database_captures} captures · ${gallery.database_images} unique images`:'Loading image history…'}</span></div>
+   {error&&<div className="alert" role="alert">{error}</div>}
+   <div className="capture-layout"><section className="card capture-gallery" aria-label="Captured image gallery"><div className="section-heading"><h2>Captured images</h2><span>{gallery?.total??0} in this view</span></div>
+    {loading?<p className="empty" role="status">Loading captured images…</p>:gallery?.items.length?<div className="capture-grid">{gallery.items.map(capture=><button key={captureKey(capture)} aria-label={`Inspect capture ${capture.run_id.slice(0,8)} at ${capture.station_index*25} m`} aria-pressed={key===captureKey(capture)} className={`capture-card ${key===captureKey(capture)?'selected':''}`} data-help="Select this captured image to inspect its source, pHash and similarity to other captures, including exact repeats from previous drives." onClick={()=>select(capture)}><img loading="lazy" src={`/api/v1/images/${capture.image_id}`} alt={`Street image ${capture.provider_image_id}`}/><span><b>{capture.station_index*25} m point</b><small>Drive {capture.run_id.slice(0,8)} · {capture.sim_time.toFixed(1)} s</small></span></button>)}</div>:<p className="empty">No captured images for this selection. Open the driver’s view during a drive, then refresh here.</p>}
+    <div className="capture-pagination"><button disabled={offset===0||loading} data-help="Show the previous page of captured images." onClick={()=>setOffset(value=>Math.max(0,value-PAGE_SIZE))}>Previous images</button><span>{gallery?.total?`${offset+1}–${Math.min(offset+PAGE_SIZE,gallery.total)} of ${gallery.total}`:'0 captures'}</span><button disabled={!gallery||offset+PAGE_SIZE>=gallery.total||loading} data-help="Show the next page of captured images." onClick={()=>setOffset(value=>value+PAGE_SIZE)}>Next images</button></div>
+   </section><section className="card capture-inspector" aria-label="Captured image comparisons"><div className="section-heading"><h2>Selected capture & comparisons</h2></div>
+    {selected?<><img className="capture-preview" data-help="The archived Mapillary source image for this drive and distance station. Panoramas are displayed and hashed as the full source image." src={`/api/v1/images/${selected.image_id}`} alt={`Selected street image ${selected.provider_image_id}`}/><dl className="capture-details" data-help="Metadata saved for this capture: drive and station, simulator time, provider image ID, original imagery capture date, image location and 64-bit pHash."><div><dt>Drive / station</dt><dd>{selected.run_id.slice(0,8)} / {selected.station_index*25} m</dd></div><div><dt>Provider image</dt><dd>{selected.provider_image_id}</dd></div><div><dt>pHash</dt><dd><code>{selected.phash}</code></dd></div><div><dt>Source capture date</dt><dd>{selected.captured_at!==null?new Date(selected.captured_at).toISOString().slice(0,10):'Unknown'}</dd></div><div><dt>Image location</dt><dd>{selected.lat.toFixed(5)}, {selected.lng.toFixed(5)}</dd></div></dl>
+     <ImageSimilarity runId={selected.run_id} index={selected.station_index} captureHistory/>
+     <div className="comparison-heading"><h3>Closest captures across all drives</h3><label><input type="checkbox" checked={matchesOnly} onChange={event=>{setMatchesOnly(event.target.checked);setComparisonOffset(0)}} data-help="Show only captures within 8 differing pHash bits. With this option off, lower similarities also appear so you can inspect near misses."/> Matching only</label></div>
+     {comparisonError?<p className="empty" role="alert">{comparisonError}</p>:!comparisons?<p className="empty" role="status">Comparing captures…</p>:comparisons.comparisons.length?<div className="capture-comparisons">{comparisons.comparisons.map(match=><button className="capture-match" key={captureKey(match)} onClick={()=>select(match)} data-help="Select this comparison as the current capture. A 100% match means identical pHashes; Same image means the original bytes are identical. Each run/station is counted once."><img loading="lazy" src={`/api/v1/images/${match.image_id}`} alt={`Matching street image ${match.provider_image_id}`}/><span><strong>{match.similarity_pct.toFixed(1)}% similarity</strong><small>Drive {match.run_id.slice(0,8)} · {match.station_index*25} m point</small><small>{match.distance}/64 differing bits · {match.exact_image?'Same image':match.is_match?'Similar image':'Below match threshold'}</small></span></button>)}</div>:<p className="empty">{matchesOnly?'No captures match within 8 bits. Turn off Matching only to inspect the closest other views.':'No other captures yet. Repeated drives will appear here as additional observations.'}</p>}
+     <div className="capture-pagination"><button disabled={comparisonOffset===0||!comparisons} onClick={()=>setComparisonOffset(value=>Math.max(0,value-COMPARE_SIZE))} data-help="Show the previous page of comparisons, ordered from highest similarity to lowest.">Previous matches</button><span>{comparisons?.comparison_total?`${comparisonOffset+1}–${Math.min(comparisonOffset+COMPARE_SIZE,comparisons.comparison_total)} of ${comparisons.comparison_total}`:'0 comparisons'}</span><button disabled={!comparisons||comparisonOffset+COMPARE_SIZE>=comparisons.comparison_total} onClick={()=>setComparisonOffset(value=>value+COMPARE_SIZE)} data-help="Show the next page of comparisons, including repeated captures from other drives.">Next matches</button></div>
+    </>:<p className="empty">Select a captured image to inspect its similarities.</p>}
+   </section></div>
+   <p className="capture-method">Each drive/station counts once. Repeated captures of the same source image count as 100% matches; duplicate uploads do not. Image bytes stay deduplicated. Matching uses pHash distance ≤ 8 of 64 bits.</p>
+  </main><footer>Mapillary source images · Persistent capture history · Browsing does not start or alter a drive</footer>
+ </div>;
+}

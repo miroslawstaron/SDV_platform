@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "identity": "instruments",
+  "role": "observer",
+  "image": "sdv-instruments:local",
+  "endpoint": "http://instruments:80",
+  "health_endpoint": "/health",
+  "display_contract": "/?run={run_id}",
+  "consumes": ["GET /api/v1/runs/{run_id}", "WebSocket /api/v1/runs/{run_id}/stream: ground-truth state, run status, replay", "GET /api/v1/runs/{run_id}/images/{station_index}/similarity: saved image similarity, match count, warning"],
+  "publishes": [],
+  "configuration": {"host_port": 8081, "embedded_url": "/instruments/?run={run_id}"},
+  "reference": {"repository": "https://github.com/nginx/nginx", "version": "nginx:1.27-alpine", "license": "BSD-2-Clause", "adaptation": "Static independent instrument display and API/WebSocket proxy"}
+}

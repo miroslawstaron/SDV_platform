@@ -1,0 +1,7 @@
+**
+!instruments
+!instruments/**
+!web
+!web/public
+!web/public/assets
+!web/public/assets/metriczone-logo.png

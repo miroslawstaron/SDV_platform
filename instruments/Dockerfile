@@ -1,0 +1,5 @@
+FROM nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+COPY instruments/nginx.conf /etc/nginx/conf.d/default.conf
+COPY instruments/public /usr/share/nginx/html
+COPY web/public/ui-help.js /usr/share/nginx/html/ui-help.js
+COPY web/public/assets/metriczone-logo.png /usr/share/nginx/html/assets/metriczone-logo.png

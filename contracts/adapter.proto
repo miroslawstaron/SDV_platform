@@ -1,0 +1,17 @@
+syntax = "proto3";
+package sdv;
+service Adapter {
+  rpc SendCan(Frame) returns (Empty);
+  rpc PublishIntent(Intent) returns (Empty);
+  rpc Snapshot(Empty) returns (SnapshotReply);
+  rpc Drain(Empty) returns (Events);
+  rpc Offer(OfferRequest) returns (Empty);
+  rpc Reset(Empty) returns (Empty);
+}
+message Empty {}
+message Frame { uint32 id = 1; bytes data = 2; uint64 age_ns = 3; }
+message Intent { bytes data = 1; uint64 age_ns = 2; }
+message SnapshotReply { repeated Frame frames = 1; Intent intent = 2; bool available = 3; }
+message Event { string protocol = 1; string kind = 2; uint32 id = 3; bytes data = 4; uint64 elapsed_ns = 5; }
+message Events { repeated Event events = 1; bool overflow = 2; }
+message OfferRequest { bool enabled = 1; }

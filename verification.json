@@ -1,0 +1,81 @@
+{
+  "active_run": null,
+  "map_preparation": "Gothenburg bundled Nya All\u00e9n route (371.49 m) and cached-road endpoint preparation (345.66 m) passed",
+  "automated_tests": {
+    "browser_unit": 26,
+    "browser_acceptance": 12,
+    "total": 38,
+    "scope": "25 metre route preloading; Metriczone driver split, independent instrument container and replay/reconnect; reveal.js navigation and slide layout; existing dashboard/exports/window regressions",
+    "logs": [
+      "artifacts-metriczone-browser.log: dashboard tests passed",
+      "artifacts-metriczone-final-browser.log: 9 affected tests passed after fixes"
+    ]
+  },
+  "baseline": {
+    "run_id": "2107f190-4b4b-438b-889c-7ff6970de058",
+    "status": "completed",
+    "route_id": "gothenburg-demo",
+    "duration_seconds": 70.25,
+    "distance_to_destination_m": 1.1726562711728263,
+    "stop_speed_mps": 0.0,
+    "consumed_wh": 135.36999999999534,
+    "regenerated_wh": 46.33999999999651,
+    "validated_before_imagery_migration": true
+  },
+  "platform_health": "ready",
+  "replacement_controllers": [
+    "Python: 2.0 m/s after 2 seconds",
+    "C++: 2.0 m/s after 2 seconds"
+  ],
+  "gateway": "ready",
+  "status": "passed",
+  "date": "2026-10-12",
+  "communication": {
+    "sequence": "Complete recorded observations aligned with replay cursor; CAN broadcast and observed reception kept distinct",
+    "exports": "JSONL, event CSV and per-signal CSV; export above 5,000 events and concurrent browser download verified",
+    "architecture": "Interactive CAN/SOME-IP ECU topology with DBC signal definitions and values"
+  },
+  "imagery": {
+    "routine_verification": "Mocked browser metadata and official-viewer adapter tests passed; heading, look-around, stale lookups, photo direction, SDK positions, gaps, replay, rate limits and missing credentials covered",
+    "live_smoke": "All 15 real Mapillary Gothenburg stations preloaded at 25 m intervals. Switches measured at 123 ms (25 m) and 162 ms (50 m) in a local headless software-WebGL browser with an injected recorded-route cursor. No provider imagery archived.",
+    "map": "OpenStreetMap/Leaflet",
+    "credential_configured": true,
+    "provider": "Mapillary",
+    "preload": {
+      "stations": 15,
+      "interval_metres": 25,
+      "image_memory_mib": 64,
+      "buffered_viewers": 3,
+      "switch_25_ms": 123,
+      "switch_50_ms": 162
+    }
+  },
+  "previous_transport_verification": {
+    "docker_integration": 12,
+    "note": "Passed before the imagery migration; transport and ECU control implementation unchanged"
+  },
+  "previous_backend_verification": {
+    "note": "Previously passed; backend unchanged in the 25 m / branding / instruments update",
+    "backend_unit": 39
+  },
+  "instruments": {
+    "image": "sdv-instruments:local",
+    "health": "healthy",
+    "standalone_url": "http://localhost:8081/?run=RUN_ID",
+    "embedded_url": "/instruments/?run=RUN_ID",
+    "verification": "Independent REST and WebSocket subscriptions; ground truth unaffected by corrupted reported values; low battery, signal and regen indicators; replay alignment, reconnect and survival after driver close passed"
+  },
+  "presentation": {
+    "url": "http://localhost:8080/presentation/",
+    "format": "reveal.js",
+    "version": "6.0.2",
+    "slides": 15,
+    "verification": "Locally served navigation and print layout passed. Every slide rendered and visually inspected."
+  },
+  "visual_identity": {
+    "brand": "Metriczone",
+    "palette": "Teal and white from existing 5G simulator; conventional dark instrument cluster",
+    "original_logo_sha256": "433FC33A55C54170B45193B0A269A2EC14B16FE95F4A72B590F468F981D9E57C",
+    "note": "Only one image was attached; second image clarification requested and no response received yet."
+  }
+}

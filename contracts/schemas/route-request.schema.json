@@ -1,0 +1,45 @@
+{
+  "$defs": {
+    "Point": {
+      "properties": {
+        "lat": {
+          "maximum": 85,
+          "minimum": -85,
+          "title": "Lat",
+          "type": "number"
+        },
+        "lng": {
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Lng",
+          "type": "number"
+        }
+      },
+      "required": [
+        "lat",
+        "lng"
+      ],
+      "title": "Point",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "start": {
+      "$ref": "#/$defs/Point"
+    },
+    "destination": {
+      "$ref": "#/$defs/Point"
+    },
+    "left_hand": {
+      "default": false,
+      "title": "Left Hand",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "start",
+    "destination"
+  ],
+  "title": "RouteRequest",
+  "type": "object"
+}

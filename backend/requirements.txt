@@ -1,0 +1,14 @@
+fastapi==0.115.12
+uvicorn==0.34.2
+httpx==0.28.1
+pydantic==2.11.4
+cantools==40.2.1
+grpcio==1.71.0
+grpcio-tools==1.71.0
+protobuf==5.29.4
+pytest==8.3.5
+pytest-asyncio==0.26.0
+kuksa-client==0.4.3
+pyproj==3.7.1
+rtree==1.4.0
+Pillow==11.3.0

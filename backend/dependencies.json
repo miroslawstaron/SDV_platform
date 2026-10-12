@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "references": [
+    {"repository":"https://github.com/eclipse-sumo/sumo", "version":"Ubuntu 24.04 SUMO 1.18.0 simulator; isolated official eclipse-sumo==1.18.0 release converter", "license":"EPL-2.0 / GPL-2.0", "adaptation":"TraCI control and OSM conversion; release netconvert avoids Ubuntu junction-angle assertions; built-in EV battery and energy model"},
+    {"repository":"https://github.com/vectorgrp/sil-kit", "version":"v5.0.7", "license":"MIT", "adaptation":"Autonomous lifecycle and CAN reader/writer patterns"},
+    {"repository":"https://github.com/COVESA/vsomeip", "version":"3.7.6", "license":"MPL-2.0", "adaptation":"Offer, discovery, subscribe/notify and request/response patterns; native/patch-vsomeip.py honors disabled multicast route notifications in Docker; modified upstream source shipped in image"},
+    {"repository":"https://github.com/eclipse-kuksa/kuksa-databroker", "version":"0.7.1", "license":"Apache-2.0", "adaptation":"Unmodified broker container"},
+    {"repository":"https://github.com/eclipse-kuksa/kuksa-python-sdk", "version":"kuksa-client 0.4.3", "license":"Apache-2.0", "adaptation":"VSS signal publishing"},
+    {"repository":"https://github.com/COVESA/vehicle_signal_specification", "version":"v6.1", "license":"MPL-2.0", "adaptation":"Unmodified VSS JSON release artifact"},
+    {"repository":"https://github.com/cantools/cantools", "version":"40.2.1", "license":"MIT", "adaptation":"DBC encoding and decoding"},
+    {"repository":"https://github.com/Leaflet/Leaflet", "version":"1.9.4", "license":"BSD-2-Clause", "adaptation":"OpenStreetMap dashboard and independent ground-truth driver location map"},
+    {"repository":"https://github.com/mapillary/mapillary-js", "version":"4.1.2", "license":"MIT", "adaptation":"Official viewer, bounded Graph image search, corrected GPS/heading selection, panorama camera tracking and map fallback; upstream attribution preserved"},
+    {"repository":"https://github.com/python-pillow/Pillow", "version":"11.3.0", "license":"MIT-CMU", "adaptation":"Decode and normalise captured street images for a 64-bit DCT perceptual hash"}
+  ],
+  "energy_parameters": {"frontSurfaceArea":2.3,"airDragCoefficient":0.29,"rotatingMass":40,"radialDragCoefficient":0.1,"rollDragCoefficient":0.01,"constantPowerIntake":700,"propulsionEfficiency":0.9,"recuperationEfficiency":0.6},
+  "imagery_reference":"https://mapillary.github.io/mapillary-js/docs/intro/try/",
+  "osm_fixture":"Gothenburg roads from OpenStreetMap API bbox 11.958,57.700,11.979,57.711; downloaded 2026-10-12, filtered to highway ways and referenced nodes; OpenStreetMap contributors, ODbL 1.0"
+}
