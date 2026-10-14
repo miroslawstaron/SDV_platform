@@ -3,6 +3,16 @@ from pydantic import BaseModel, Field, model_validator
 
 ROLES = ('navigation','controller','powertrain','brake','lane','sensor','bms')
 
+class Selection(BaseModel):
+    ids: list[str] | None = Field(None, min_length=1, max_length=500)
+    all: bool = False
+
+    @model_validator(mode='after')
+    def validate_selection(self):
+        if bool(self.ids) == self.all:
+            raise ValueError('Choose selected IDs or explicitly select all')
+        return self
+
 class Point(BaseModel):
     lat: float = Field(ge=-85, le=85)
     lng: float = Field(ge=-180, le=180)

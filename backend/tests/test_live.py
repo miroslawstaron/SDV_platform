@@ -31,6 +31,9 @@ def test_services_and_baseline_journey():
         events+=batch;after=batch[-1]['event_id']
     assert any(e['protocol']=='CAN' and e['kind']=='tx' for e in events)
     assert any(e['protocol']=='CAN' and e['kind']=='rx' for e in events)
+    received_by_plant={e.get('message_id') for e in events if e['module']=='plant' and e['protocol']=='CAN' and e['kind']=='rx'}
+    assert {528,544,560}<=received_by_plant, 'The simulator must receive the applied propulsion, braking and lane messages'
+    assert run['peak_speed']>1, 'Advancing time alone does not prove the vehicle moved'
     assert any(e['protocol']=='SOME/IP' and e['kind']=='event_rx' for e in events)
     assert any(e['protocol']=='SOME/IP' and e['kind']=='response_rx' for e in events)
     final=call(f"/runs/{run['id']}/timeline?at={run['time']}")['state']

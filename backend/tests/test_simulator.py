@@ -5,6 +5,31 @@ from sdv.simulator import SumoBackend
 from sdv.application import compute
 from sdv.models import Vehicle
 
+@pytest.mark.parametrize('seed,max_speed',[(42,130/3.6),(1,20/3.6)])
+def test_road_speed_limit_is_independent_of_driver_factor_and_vehicle_cap(tmp_path,monkeypatch,seed,max_speed):
+    nodes=tmp_path/'nodes.xml';edges=tmp_path/'edges.xml';network=tmp_path/'network.net.xml'
+    nodes.write_text('<nodes><node id="a" x="0" y="0"/><node id="b" x="100" y="0"/><node id="c" x="200" y="0"/></nodes>')
+    edges.write_text('<edges><edge id="first" from="a" to="b" speed="13.89"/><edge id="second" from="b" to="c" speed="8.33"/></edges>')
+    subprocess.run(['netconvert','--node-files',str(nodes),'--edge-files',str(edges),'--output-file',str(network),'--no-warnings','true'],check=True,capture_output=True)
+    from pathlib import Path
+    import sdv.simulator as simulator
+    monkeypatch.setattr(simulator,'Path',lambda value:tmp_path/'active.rou.xml' if value=='/data/active.rou.xml' else Path(value))
+    route={'network':str(network),'edges':['first','second'],'start_offset':0,'end_offset':80,'distance':180}
+    vehicle=Vehicle(max_speed=max_speed).model_dump()
+    backend=SumoBackend()
+    try:
+        backend.load_world(route,vehicle,seed)
+        for lane_id,limit in [('first_0',13.89),('second_0',8.33)]:
+            backend.conn.vehicle.moveTo('ego',lane_id,20)
+            backend.conn.simulationStep()
+            state=backend._read()
+            assert state['speed_limit']==pytest.approx(limit)
+            context={'sequence':1,'vehicle':vehicle,'truth':state}
+            assert compute('sensor',context)['can'][0][1]['SpeedLimit']==pytest.approx(limit)
+            assert compute('navigation',context)['intent']['target_speed']==pytest.approx(min(limit,max_speed))
+    finally:
+        backend.shutdown()
+
 def test_simulator_route_exit_does_not_fake_success():
     backend=SumoBackend()
     backend.conn=SimpleNamespace(simulationStep=lambda:None,vehicle=SimpleNamespace(getIDList=lambda:[]))

@@ -4,6 +4,7 @@ import json
 import logging
 import math
 import os
+import re
 import shutil
 import subprocess
 import uuid
@@ -143,6 +144,17 @@ def get_route(route_id:str):
     path=ROOT/route_id/'route.json'
     if not path.is_file():raise HTTPException(404,'Route not found')
     return json.loads(path.read_text())
+
+
+@app.delete('/routes/{route_id}')
+def delete_route(route_id:str):
+    if not re.fullmatch('[a-f0-9]{20}',route_id):raise HTTPException(422,'Only prepared custom routes can be removed; bundled routes are kept')
+    if any(job.get('status')=='preparing' for job in jobs.values()):raise HTTPException(409,'Wait for route preparation to finish or cancel it first')
+    folder=(ROOT/route_id).resolve()
+    if folder.parent!=ROOT.resolve():raise HTTPException(422,'Invalid route path')
+    if not (folder/'route.json').is_file():raise HTTPException(404,'Route not found')
+    shutil.rmtree(folder)
+    return {'route_deleted':route_id}
 
 async def prepare(job_id,req):
     job=jobs[job_id]

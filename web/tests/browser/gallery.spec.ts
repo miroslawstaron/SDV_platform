@@ -1,5 +1,19 @@
 import {test,expect} from '@playwright/test';
 
+test('uploaded reference provenance has no invented route position or coordinates',async({page})=>{
+ const capture={run_id:'library-reference',station_index:0,image_id:'reference',provider_image_id:'reference.png',source:'uploaded',phash:'0123456789abcdef',sim_time:0,lat:null,lng:null,captured_at:null};
+ await page.route('**/api/v1/image-captures?*',route=>route.fulfill({json:{total:1,items:[capture],runs:[{run_id:'reference-library',captures:1}],database_images:1,database_captures:1}}));
+ await page.route('**/api/v1/image-captures/library-reference/0/similarity*',route=>route.fulfill({json:{status:'ready',comparisons:[],comparison_total:0,similar_count:0,similar_image_count:0,nearest_similarity_pct:null,too_similar:false,database_images:1,hash_bits:64,max_distance:8,warning_count:5}}));
+ await page.goto('/image-similarity');
+ await expect(page.locator('.capture-card')).toContainText('Uploaded reference');
+ await expect(page.locator('.capture-details')).toContainText('File name');
+ await expect(page.locator('.capture-details')).toContainText('Not supplied for uploaded reference');
+ await expect(page.getByTestId('image-similarity')).toContainText('Uploaded reference');
+ await expect(page.getByTestId('image-similarity')).not.toContainText('0 m point');
+ await page.getByRole('combobox',{name:'Image capture drive'}).selectOption('reference-library');
+ await expect(page.getByRole('combobox',{name:'Image capture drive'})).toHaveValue('reference-library');
+});
+
 const origin={lat:57.7,lng:11.97};
 const run={id:'drive-new',status:'completed',time:5,route:{id:'gothenburg-demo',name:'Gallery test route',distance:100,geometry:[origin,{...origin,lat:57.701}],start:origin,destination:{...origin,lat:57.701},attribution:'Test road'},configuration:{vehicle:{}},results:[],recording_valid:true};
 const capture=(run_id:string,station_index:number,image_id='same-image')=>({run_id,station_index,image_id,provider_image_id:image_id==='same-image'?'123':'456',phash:image_id==='same-image'?'8000000000000000':'ffffffff00000000',sim_time:station_index,lat:57.7,lng:11.97,captured_at:1700000000000,bytes:100});
@@ -10,7 +24,7 @@ test('engineering button opens a drive-filtered gallery and repeated captures sh
  await context.route('**/api/v1/config',route=>route.fulfill({json:{mapillary_access_token:''}}));
  await context.route('**/api/v1/health',route=>route.fulfill({json:{status:'ready',active_run:null}}));
  await context.route('**/api/v1/routes',route=>route.fulfill({json:[run.route]}));
- await context.route('**/api/v1/runs',route=>route.fulfill({json:[run]}));
+ await context.route(/\/api\/v1\/runs(?:\?.*)?$/,route=>route.fulfill({json:[run]}));
  await context.route('**/api/v1/runs/drive-new',route=>route.fulfill({json:run}));
  await context.route('**/api/v1/runs/drive-new/timeline?*',route=>route.fulfill({json:{state:null,events:[]}}));
  await context.routeWebSocket('**/api/v1/runs/drive-new/stream',()=>{});
@@ -36,7 +50,7 @@ test('engineering button opens a drive-filtered gallery and repeated captures sh
  await expect(gallery.getByTestId('image-similarity')).toContainText('100.0% closest match');
  await expect(gallery.getByTestId('image-similarity')).toContainText('1 similar captures');
  await expect(gallery.locator('.capture-match').first()).toContainText('Drive drive-ol');
- await expect(gallery.locator('.capture-match').first()).toContainText('Same image');
+ await expect(gallery.locator('.capture-match').first()).toContainText('Same stored image');
  await gallery.getByRole('checkbox').check();await expect(gallery.locator('.capture-match')).toHaveCount(1);
  await gallery.getByRole('combobox',{name:'Image capture drive'}).selectOption('');await expect(gallery.locator('.capture-card')).toHaveCount(3);
  await gallery.getByRole('button',{name:'Refresh images'}).click();await expect(gallery.locator('.capture-card')).toHaveCount(3);

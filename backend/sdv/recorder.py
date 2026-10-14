@@ -7,6 +7,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from .observation import endpoints, signal_metadata
+from .models import Selection
 
 DBPATH=Path('/data/recordings.sqlite')
 @contextmanager
@@ -23,7 +24,7 @@ def connection():
 async def lifespan(app):
     DBPATH.parent.mkdir(parents=True,exist_ok=True)
     with connection() as db:
-        db.executescript('PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY,data TEXT); CREATE TABLE IF NOT EXISTS ticks(run TEXT,t REAL,state TEXT,PRIMARY KEY(run,t)); CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT,run TEXT,t REAL,data TEXT); CREATE INDEX IF NOT EXISTS event_time ON events(run,t);')
+        db.executescript('PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY,data TEXT); CREATE INDEX IF NOT EXISTS run_status ON runs(json_extract(data,\'$.status\')); CREATE TABLE IF NOT EXISTS ticks(run TEXT,t REAL,state TEXT,PRIMARY KEY(run,t)); CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT,run TEXT,t REAL,data TEXT); CREATE INDEX IF NOT EXISTS event_time ON events(run,t);')
     yield
 app=FastAPI(lifespan=lifespan)
 
@@ -32,14 +33,45 @@ def health():
     with connection() as db:db.execute('SELECT 1')
     return {'status':'ready'}
 
+
+@app.get('/management/statistics')
+def statistics_summary():
+    with connection() as db:
+        counts = {table: db.execute(f'SELECT COUNT(*) FROM {table}').fetchone()[0] for table in ('runs','ticks','events')}
+        pages=db.execute('PRAGMA page_count').fetchone()[0]
+        free=db.execute('PRAGMA freelist_count').fetchone()[0]
+        page_size=db.execute('PRAGMA page_size').fetchone()[0]
+    return dict(counts,database_bytes=pages*page_size,reusable_bytes=free*page_size)
+
+
+@app.delete('/runs')
+def delete_runs(selection:Selection):
+    with connection() as db:
+        db.execute('BEGIN IMMEDIATE')
+        ids=list(set(selection.ids)) if selection.ids else [row[0] for row in db.execute('SELECT id FROM runs')]
+        if not ids:return {'runs_deleted':0,'ids':[]}
+        placeholders=','.join('?' for _ in ids)
+        rows=list(db.execute(f"SELECT id,json_extract(data,'$.status') AS status FROM runs WHERE id IN ({placeholders})",ids))
+        if len(rows)!=len(ids):raise HTTPException(404,'A recording no longer exists. Refresh the dashboard.')
+        if any(row['status'] in ('running','starting') for row in rows):raise HTTPException(409,'Stop the drive before deleting its recording')
+        events=db.execute(f'DELETE FROM events WHERE run IN ({placeholders})',ids).rowcount
+        ticks=db.execute(f'DELETE FROM ticks WHERE run IN ({placeholders})',ids).rowcount
+        db.execute(f'DELETE FROM runs WHERE id IN ({placeholders})',ids)
+    return {'runs_deleted':len(ids),'events_deleted':events,'ticks_deleted':ticks,'ids':ids}
+
 @app.post('/runs/{rid}')
 def save_run(rid:str,data:dict):
     with connection() as db:db.execute('INSERT INTO runs VALUES(?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',(rid,json.dumps(data)))
     return {'ok':True}
 
 @app.get('/runs')
-def runs():
-    with connection() as db:return [json.loads(r['data']) for r in db.execute('SELECT data FROM runs ORDER BY rowid DESC')]
+def runs(unfinished_only:bool=False,summary:bool=False):
+    where=" WHERE json_extract(data,'$.status') IN ('running','starting')" if unfinished_only else ''
+    with connection() as db:
+        if summary:
+            rows=db.execute("SELECT id,json_extract(data,'$.status') AS status,COALESCE(json_extract(data,'$.time'),0) AS time FROM runs"+where+' ORDER BY rowid DESC')
+            return [dict(row) for row in rows]
+        return [json.loads(row['data']) for row in db.execute('SELECT data FROM runs'+where+' ORDER BY rowid DESC')]
 
 @app.get('/runs/{rid}')
 def run(rid:str):

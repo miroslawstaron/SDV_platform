@@ -7,7 +7,7 @@ test('engineering dashboard compares the current station and discards a late ear
  await page.route('**/api/v1/config',route=>route.fulfill({json:{mapillary_access_token:''}}));
  await page.route('**/api/v1/health',route=>route.fulfill({json:{status:'ready',active_run:null}}));
  await page.route('**/api/v1/routes',route=>route.fulfill({json:[run.route]}));
- await page.route('**/api/v1/runs',route=>route.fulfill({json:[run]}));
+ await page.route(/\/api\/v1\/runs(?:\?.*)?$/,route=>route.fulfill({json:[run]}));
  await page.route('**/api/v1/runs/similarity-dashboard',route=>route.fulfill({json:run}));
  await page.route('**/api/v1/runs/similarity-dashboard/events?*',route=>route.fulfill({json:[]}));
  await page.routeWebSocket('**/api/v1/runs/similarity-dashboard/stream',ws=>sockets.push(ws));

@@ -8,6 +8,7 @@ x-worker: &worker
   depends_on:
     registry:
       condition: service_started
+      restart: true
   healthcheck:
     test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
     interval: 10s
@@ -107,7 +108,8 @@ services:
     init: true
     restart: unless-stopped
     ports: ["127.0.0.1:8081:80"]
-    depends_on: [api]
+    depends_on:
+      api: {condition: service_healthy, restart: true}
     healthcheck:
       test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1/health]
       interval: 10s
@@ -116,10 +118,10 @@ services:
   web:
     build: {context: ./web}
     init: true
-    ports: ["127.0.0.1:8080:80"]
+    ports: ["${SDV_WEB_BIND:-127.0.0.1}:8080:80"]
     depends_on:
-      api: {condition: service_started}
-      instruments: {condition: service_healthy}
+      api: {condition: service_healthy, restart: true}
+      instruments: {condition: service_healthy, restart: true}
     healthcheck:
       test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1/health]
       interval: 10s

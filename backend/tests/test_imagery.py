@@ -41,7 +41,7 @@ def test_phash_is_64_bit_and_tolerates_brightness_and_image_encoding():
     assert imagery.phash(buffer.getvalue())[0] == '8000000000000000'
 
 
-def test_five_other_images_trigger_warning_and_self_is_excluded(database):
+def test_five_other_captures_trigger_warning_without_storing_100_percent_matches_again(database):
     for index in range(5):
         value = save(picture(str(index)), index)
         assert value['similar_count'] == index
@@ -50,7 +50,9 @@ def test_five_other_images_trigger_warning_and_self_is_excluded(database):
     assert value['similar_count'] == 5 and value['too_similar']
     assert value['nearest_similarity_pct'] == 100
     assert len(value['matches']) == 5
-    assert all(match['image_id'] != value['image_id'] for match in value['matches'])
+    assert value['database_images'] == 1 and value['database_captures'] == 6
+    assert all(match['station_index'] != 5 for match in value['matches'])
+    assert all(match['image_id'] == value['image_id'] for match in value['matches'])
 
 
 def test_duplicate_uploads_are_idempotent_but_separate_captures_match(database):
@@ -65,9 +67,88 @@ def test_duplicate_uploads_are_idempotent_but_separate_captures_match(database):
     assert another_drive['similar_count'] == 2 and another_drive['nearest_similarity_pct'] == 100
     assert another_drive['similar_image_count'] == 1 and another_drive['database_captures'] == 3
     assert imagery.list_images()['items'][0]['captures'] == 3
+    assert save(picture('changed encoding'))['image_id'] == values[0]['image_id']
+    output=io.BytesIO()
+    with Image.open(io.BytesIO(data)) as image:
+        image.transpose(Image.Transpose.FLIP_LEFT_RIGHT).save(output,format='PNG')
+    assert imagery.phash(output.getvalue())[0] != imagery.phash(data)[0]
     with pytest.raises(ValueError, match='different captured image'):
-        save(picture('changed'))
+        save(output.getvalue())
     assert imagery.list_images()['total'] == 1
+
+
+def test_concurrent_different_encodings_with_equal_phashes_share_one_stored_original(database):
+    inputs=[picture(f'encoding-{index}') for index in range(12)]
+    assert len(set(inputs))==12 and len({imagery.phash(data)[0] for data in inputs})==1
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        values=list(pool.map(lambda item:save(item[1],run=f'drive-{item[0]}'),enumerate(inputs)))
+    assert len({value['image_id'] for value in values})==1
+    stats=imagery.statistics_summary()
+    assert stats['images']==1 and stats['captures']==12
+    stored=imagery.image_bytes(values[0]['image_id'])[0]
+    assert stored in inputs and stats['image_bytes']==len(stored)
+    assert imagery.similarity('drive-11',0)['similar_count']==11
+
+
+def test_imported_different_encodings_do_not_add_assets_or_duplicate_library_references(database):
+    first=imagery.import_image(picture('first'),'first.png')
+    second=imagery.import_image(picture('second'),'second.png')
+    assert first['image_stored'] and first['reference_added']
+    assert second['image_id']==first['image_id']
+    assert not second['image_stored'] and not second['reference_added']
+    assert imagery.statistics_summary()['images']==1
+    assert imagery.statistics_summary()['references']==1
+    imagery.initialize()
+    third=save(picture('drive encoding'),run='new-drive')
+    assert third['image_id']==first['image_id'] and third['nearest_similarity_pct']==100
+
+
+def test_non_matching_phash_stores_a_separate_file(database):
+    data=picture('original');first=save(data)
+    output=io.BytesIO()
+    with Image.open(io.BytesIO(data)) as image:
+        image.transpose(Image.Transpose.FLIP_LEFT_RIGHT).save(output,format='PNG')
+    second=save(output.getvalue(),run='different-view')
+    assert first['phash']!=second['phash'] and first['image_id']!=second['image_id']
+    assert imagery.list_images()['total']==2
+
+
+def test_same_phash_in_another_format_reuses_original_bytes_and_media_type(database):
+    original=picture('PNG source');first=save(original)
+    output=io.BytesIO()
+    with Image.open(io.BytesIO(original)) as image:
+        image.save(output,format='WEBP',lossless=True)
+    assert output.getvalue()!=original
+    assert imagery.phash(output.getvalue())[0]==first['phash']
+    second=save(output.getvalue(),run='webp-drive')
+    assert second['image_id']==first['image_id']
+    assert imagery.image_bytes(second['image_id'])==(original,'image/png')
+    assert imagery.list_images()['total']==1 and second['database_captures']==2
+
+
+def test_near_match_is_still_stored_as_a_distinct_image(database):
+    first=save(picture())
+    for brightness in range(1,101):
+        data=picture(brightness=brightness)
+        distance=(int(imagery.phash(data)[0],16)^int(first['phash'],16)).bit_count()
+        if 0<distance<=imagery.MAX_DISTANCE:break
+    else:raise AssertionError('The fixture must provide a near match with a different pHash')
+    second=save(data,run='near-match-drive')
+    assert second['similar_count']==1 and second['nearest_similarity_pct']<100
+    assert second['image_id']!=first['image_id'] and second['database_images']==2
+
+
+def test_existing_history_is_retained_and_new_100_percent_matches_reuse_an_old_file(database):
+    original=picture('old');first=save(original,run='old-drive')
+    legacy=picture('legacy-encoding')
+    with imagery.connection() as db:
+        db.execute('INSERT INTO images VALUES(?,?,?,?,?)',('legacy-image',first['phash'],'image/png',legacy,0))
+        db.execute('INSERT INTO captures VALUES(?,?,?,?,?,?,?,?)',('legacy-drive',0,'legacy-image','legacy',0,57.7,11.97,None))
+    imagery.initialize()
+    newest=save(picture('new-encoding'),run='new-drive')
+    assert newest['image_id']=='legacy-image' and newest['database_images']==2
+    assert imagery.image_bytes(first['image_id'])[0]==original
+    assert imagery.list_captures()['total']==3
 
 
 def test_threshold_is_inclusive_and_unrelated_images_clear_warning(database):

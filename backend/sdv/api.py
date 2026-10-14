@@ -12,6 +12,7 @@ from starlette.concurrency import run_in_threadpool
 from . import imagery
 from .models import RunRequest, RouteRequest, Fault, ROLES, ModuleManifest
 from .observation import catalog
+from .models import Selection
 
 client=None
 active=None
@@ -22,8 +23,9 @@ run_lock=asyncio.Lock()
 gateway_status={'status':'connecting'}
 provenance={}
 
-async def request(service,path,method='GET',data=None):
-    response=await client.request(method,f'http://{service}:8000{path}',json=data)
+async def request(service,path,method='GET',data=None,timeout=None):
+    options={} if timeout is None else {'timeout':httpx.Timeout(timeout,connect=5)}
+    response=await client.request(method,f'http://{service}:8000{path}',json=data,**options)
     if response.is_error:
         try:detail=response.json().get('detail',response.text)
         except ValueError:detail=response.text
@@ -36,7 +38,7 @@ async def lifespan(app):
     imagery.initialize()
     client=httpx.AsyncClient(timeout=5,limits=httpx.Limits(max_connections=40,max_keepalive_connections=30))
     if Path('/data/provenance.json').exists():provenance.update(json.loads(Path('/data/provenance.json').read_text()))
-    for run in await request('recorder','/runs'):
+    for run in await request('recorder','/runs?unfinished_only=true'):
         if run['status'] in ('running','starting'):
             run.update(status='interrupted',recording_valid=False,error='Platform restarted during run')
             await request('recorder',f"/runs/{run['id']}",'POST',run)
@@ -46,6 +48,78 @@ async def lifespan(app):
     await client.aclose()
 
 app=FastAPI(title='Personal SDV Lab',version='1.0.0',lifespan=lifespan)
+
+
+class RecordingSelection(Selection):
+    include_images: bool = False
+
+
+def require_idle():
+    if active:raise HTTPException(409,'Stop the active drive before changing the simulation environment')
+
+
+@app.get('/api/v1/management/overview')
+async def management_overview():
+    recording,images,platform=await asyncio.gather(request('recorder','/management/statistics',timeout=30),
+                                                  run_in_threadpool(imagery.statistics_summary),health())
+    return {'recordings':recording,'images':images,'platform':platform}
+
+
+@app.delete('/api/v1/management/recordings')
+async def management_delete_recordings(selection:RecordingSelection):
+    async with run_lock:
+        require_idle()
+        try:value=await request('recorder','/runs','DELETE',selection.model_dump(exclude={'include_images'}),timeout=120)
+        except httpx.TimeoutException as exc:raise HTTPException(504,'Cleanup timed out. Refresh the dashboard before retrying to check whether it completed.') from exc
+        for rid in value['ids']:
+            current.pop(rid,None)
+            tasks.pop(rid,None)
+        if selection.include_images:
+            # If this second store fails, identify the already committed deletion.
+            try:value.update(await run_in_threadpool(imagery.delete_run_captures,value['ids']))
+            except Exception as exc:raise HTTPException(500,f"{value['runs_deleted']} recordings were deleted, but image cleanup failed. Use the Images section to retry.") from exc
+        return value
+
+
+@app.delete('/api/v1/management/images')
+async def management_delete_images(selection:Selection):
+    async with run_lock:
+        require_idle()
+        try:return await run_in_threadpool(imagery.delete_images,selection.ids)
+        except KeyError as exc:raise HTTPException(404,str(exc)) from exc
+
+
+@app.post('/api/v1/management/images',status_code=201)
+async def management_import_image(request_body:Request,filename:str=Query(min_length=1,max_length=128)):
+    require_idle()
+    data=bytearray()
+    async for chunk in request_body.stream():
+        data.extend(chunk)
+        if len(data)>imagery.MAX_IMAGE_BYTES:raise HTTPException(413,'Image exceeds 12 MiB')
+    async with run_lock:
+        require_idle()
+        try:return await run_in_threadpool(imagery.import_image,bytes(data),filename)
+        except ValueError as exc:raise HTTPException(422,str(exc)) from exc
+
+
+@app.post('/api/v1/management/reset')
+async def management_reset():
+    async with run_lock:
+        require_idle()
+        async def reset_module(role):
+            try:
+                if role=='plant':await request(role,'/shutdown','POST',{})
+                return role,{'status':'reset','result':await request(role,'/reset','POST',{})}
+            except Exception as exc:return role,{'status':'failed','error':str(exc)}
+        results=dict(await asyncio.gather(*(reset_module(role) for role in ('plant',*ROLES))))
+        return {'status':'reset' if all(v['status']=='reset' for v in results.values()) else 'partial','services':results}
+
+
+@app.delete('/api/v1/management/routes/{route_id}')
+async def management_delete_route(route_id:str):
+    async with run_lock:
+        require_idle()
+        return await request('maps',f'/routes/{route_id}','DELETE')
 
 @app.get('/api/v1/health')
 async def health():
@@ -117,7 +191,9 @@ async def capture_image(rid:str,station_index:int,request_body:Request,
         data.extend(chunk)
         if len(data)>imagery.MAX_IMAGE_BYTES:raise HTTPException(413,'Image exceeds 12 MiB')
     try:
-        return await run_in_threadpool(imagery.capture,rid,station_index,bytes(data),provider_image_id,sim_time,lat,lng,captured_at)
+        async with run_lock:
+            if (await get_run(rid))['status']!='running':raise HTTPException(409,'The drive ended before this image was saved')
+            return await run_in_threadpool(imagery.capture,rid,station_index,bytes(data),provider_image_id,sim_time,lat,lng,captured_at)
     except ValueError as exc:raise HTTPException(422,str(exc)) from exc
 
 @app.get('/api/v1/modules')
@@ -132,7 +208,7 @@ async def create(req:RunRequest):
     return run
 
 @app.get('/api/v1/runs')
-async def runs():return await request('recorder','/runs')
+async def runs(summary:bool=False):return await request('recorder','/runs?summary=true' if summary else '/runs')
 
 @app.get('/api/v1/runs/{rid}')
 async def get_run(rid:str):return current[rid]['run'] if rid in current else await request('recorder',f'/runs/{rid}')
@@ -313,8 +389,11 @@ async def export(rid:str,format:str='jsonl'):
 
 @app.delete('/api/v1/runs/{rid}')
 async def delete(rid:str):
-    if active==rid:raise HTTPException(409,'Stop run before deleting it')
-    current.pop(rid,None);return await request('recorder',f'/runs/{rid}','DELETE')
+    async with run_lock:
+        if active==rid:raise HTTPException(409,'Stop run before deleting it')
+        value=await request('recorder',f'/runs/{rid}','DELETE')
+        current.pop(rid,None)
+        return value
 
 @app.get('/api/v1/telemetry')
 def telemetry():

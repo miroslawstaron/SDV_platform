@@ -119,16 +119,21 @@ test('captures only reached live images, warns at five matches and clears on a d
   await route.fulfill({json:result(index)});
  });
  await page.route('https://graph.mapillary.com/images?*',route=>respond(page,route,station(route)));
- await page.goto('/driver/mock');await expect(page.getByText('Connected',{exact:true})).toBeVisible();send(0);
- const card=page.getByTestId('image-similarity'),frame=page.frameLocator('iframe[title="Vehicle instrument dashboard"]');
- await expect(card).toContainText('4 similar captures');await expect(card.getByRole('alert')).toHaveCount(0);
+ await page.goto('/driver/mock');await expect(page.getByText('Connected',{exact:true})).toBeVisible();
+ const frame=page.frameLocator('iframe[title="Vehicle instrument dashboard"]'),card=frame.locator('.image-similarity');
+ await expect(frame.getByText('Connected',{exact:true})).toBeVisible();send(0);
+ await expect(card).toContainText('4 similar captures');await expect(card.getByRole('alert')).toBeHidden();
+ await expect(page.locator('.driver-scene .image-similarity')).toHaveCount(0);
+ const placement=await card.evaluate(element=>({top:element.getBoundingClientRect().top,bottom:element.getBoundingClientRect().bottom,speedometerBottom:document.querySelector('.speedometer')!.getBoundingClientRect().bottom,batteryTop:document.querySelector('.battery-section')!.getBoundingClientRect().top}));
+ expect(placement.top).toBeGreaterThanOrEqual(placement.speedometerBottom);
+ expect(placement.bottom).toBeLessThanOrEqual(placement.batteryTop);
  await expect(page.getByTestId('panorama')).toHaveAttribute('data-preloaded','9',{timeout:15000});expect(captured).toEqual([0]);
  send(25);await expect(card.getByRole('alert')).toContainText('Drive to another place');
  await expect(frame.locator('#similarity-warning')).toBeVisible();await expect(frame.locator('#similarity-value')).toContainText('5 similar captures');
  expect(await frame.locator('#similarity-warning').evaluate(element=>element.getBoundingClientRect().bottom<=innerHeight)).toBe(true);
  await expect(card).toContainText('5 similar captures');
  await page.screenshot({path:testInfo.outputPath('similarity-warning.png'),fullPage:true});
- send(50);await expect(card).toContainText('0 similar captures');await expect(card.getByRole('alert')).toHaveCount(0);
+ send(50);await expect(card).toContainText('0 similar captures');await expect(card.getByRole('alert')).toBeHidden();
  await expect(frame.locator('#similarity-warning')).toBeHidden();expect(captured).toEqual([0,1,2]);
  send(0,0,'replay');await expect(card).toContainText('4 similar captures');await page.waitForTimeout(1100);expect(captured).toEqual([0,1,2]);
 });
@@ -142,8 +147,10 @@ test('failed captures show a retry and recover without blocking imagery',async({
   await route.fulfill({json:{status:saved?'ready':'awaiting_capture',run_id:'mock',station_index:0,database_images:saved?1:0,similar_count:0,too_similar:false,nearest_similarity_pct:null,hash_bits:64,max_distance:8,warning_count:5}});
  });
  await page.route('https://graph.mapillary.com/images?*',route=>respond(page,route,station(route)));
- await page.goto('/driver/mock');await expect(page.getByText('Connected',{exact:true})).toBeVisible();send(0);
+ await page.goto('/driver/mock');await expect(page.getByText('Connected',{exact:true})).toBeVisible();
+ const frame=page.frameLocator('iframe[title="Vehicle instrument dashboard"]');
+ await expect(frame.getByText('Connected',{exact:true})).toBeVisible();send(0);
  await expect(page.getByRole('button',{name:'Retry capture'})).toBeVisible();await expect(page.getByTestId('panorama')).not.toHaveClass(/hidden/);
- await page.getByRole('button',{name:'Retry capture'}).click();await expect(page.getByTestId('image-similarity')).toContainText('No other captures yet');expect(uploads).toBe(2);
+ await page.getByRole('button',{name:'Retry capture'}).click();await expect(frame.locator('#similarity-value')).toContainText('No other captures yet');expect(uploads).toBe(2);
 });
 

@@ -15,11 +15,14 @@ test('split driver has independent instruments, live ground truth, warnings and 
  await expect.poll(()=>sockets.length).toBe(2);
  for(const socket of sockets)socket.send(JSON.stringify({type:'tick',run,state,signals:{Speed:99,Charge:1}}));
  await expect(frame.getByTestId('instrument-speed')).toHaveText('45');
+ await expect(frame.locator('#limit')).toHaveText('50');
  await expect(frame.getByTestId('instrument-charge')).toHaveText('79.8');
  await expect(frame.getByText('60 kWh EV')).toBeVisible();
  const instrument=await page.locator('.instrument-pane').boundingBox(),scene=await page.locator('.driver-scene').boundingBox();
  expect(instrument!.x+instrument!.width).toBeLessThanOrEqual(scene!.x+1);expect(instrument!.width).toBeCloseTo(scene!.width,0);
  expect(instrument!.x).toBe(0);expect(scene!.x+scene!.width).toBe(page.viewportSize()!.width);
+ for(const socket of sockets)socket.send(JSON.stringify({type:'tick',run,state:{...state,speed_limit:8.33}}));
+ await expect(frame.locator('#limit')).toHaveText('30');
  for(const socket of sockets)socket.send(JSON.stringify({type:'replay',run:{...run,status:'completed'},state:{...state,time:1,speed:0,charge_pct:7,energy_wh:4200,remaining:346.49,progress:25/371.49,power_w:-12000,red_light:true}}));
  await expect(frame.getByTestId('instrument-speed')).toHaveText('0');await expect(frame.getByTestId('instrument-charge')).toHaveText('7.0');
  await expect(frame.getByText('REPLAY',{exact:true})).toBeVisible();await expect(frame.getByTestId('instrument-time')).toHaveText('1.0 s');

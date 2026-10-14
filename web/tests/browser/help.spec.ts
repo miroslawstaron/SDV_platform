@@ -6,7 +6,7 @@ async function dashboard(page:Page){
  await page.route('**/api/v1/config',route=>route.fulfill({json:{mapillary_access_token:''}}));
  await page.route('**/api/v1/health',route=>route.fulfill({json:{status:'ready',active_run:null}}));
  await page.route('**/api/v1/routes',route=>route.fulfill({json:[run.route]}));
- await page.route('**/api/v1/runs',route=>route.fulfill({json:[]}));
+ await page.route(/\/api\/v1\/runs(?:\?.*)?$/,route=>route.fulfill({json:[]}));
  await page.clock.install();await page.goto('/');
  await expect(page.getByRole('button',{name:'▶ Start drive'})).toBeEnabled();
  await expect(page.locator('#sdv-ui-help')).toBeAttached();
@@ -53,6 +53,7 @@ test('independent instrument readings get delayed help inside the iframe',async(
  await frame.locator('#charge').hover();await page.clock.runFor(2500);await expect(frame.getByRole('tooltip')).toBeHidden();
  await page.clock.runFor(1000);await expect(frame.getByRole('tooltip')).toContainText('Actual battery state of charge');
  await expect(page.getByRole('tooltip')).toBeHidden();
+ await frame.locator('.image-similarity').hover();await page.clock.runFor(3500);await expect(frame.getByRole('tooltip')).toContainText('differing pHash bits / 64');
  await page.getByRole('button',{name:'Following vehicle',exact:true}).hover();await expect(frame.getByRole('tooltip')).toBeHidden();
  await page.clock.runFor(3500);await expect(page.getByRole('tooltip')).toContainText('Heading tracking is enabled');
 });

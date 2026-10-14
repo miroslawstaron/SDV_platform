@@ -104,7 +104,10 @@ class SumoBackend:
         if remaining<0:remaining=0
         lights=v.getNextTLS('ego');red=False;distance=6553.5
         if lights:distance=max(0,lights[0][2]);red=lights[0][3].lower() in ('r','y')
-        return {'time':self.elapsed,'lat':lat,'lng':lng,'heading':v.getAngle('ego'),'speed':v.getSpeed('ego'),'acceleration':v.getAcceleration('ego'),'lane_index':v.getLaneIndex('ego'),'route_lane_offset':self._route_lane_offset(),'remaining':max(0,remaining),'distance':self.route['distance'],'progress':max(0,min(1,1-max(0,remaining)/self.route['distance'])),'speed_limit':min(v.getAllowedSpeed('ego'),self.vehicle['max_speed']),'light_distance':distance,'red_light':red,'charge_pct':energy/self.vehicle['capacity_wh']*100,'energy_wh':energy,'power_w':delta*3600/.05,'consumed_wh':self.consumed,'regenerated_wh':self.regenerated,'arrived':False}
+        # getAllowedSpeed includes the driver's speed factor and the vehicle cap.
+        # Report the road limit; navigation/controller apply the vehicle cap separately.
+        speed_limit=self.conn.lane.getMaxSpeed(v.getLaneID('ego'))
+        return {'time':self.elapsed,'lat':lat,'lng':lng,'heading':v.getAngle('ego'),'speed':v.getSpeed('ego'),'acceleration':v.getAcceleration('ego'),'lane_index':v.getLaneIndex('ego'),'route_lane_offset':self._route_lane_offset(),'remaining':max(0,remaining),'distance':self.route['distance'],'progress':max(0,min(1,1-max(0,remaining)/self.route['distance'])),'speed_limit':speed_limit,'light_distance':distance,'red_light':red,'charge_pct':energy/self.vehicle['capacity_wh']*100,'energy_wh':energy,'power_w':delta*3600/.05,'consumed_wh':self.consumed,'regenerated_wh':self.regenerated,'arrived':False}
     def state(self):return self.last
     def shutdown(self):
         if self.conn:

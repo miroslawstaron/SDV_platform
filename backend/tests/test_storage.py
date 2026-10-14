@@ -30,6 +30,23 @@ def test_duplicate_tick_rolls_back_events(store):
 
 def test_unknown_recording(store):assert store.get('/runs/missing/timeline').status_code==404
 
+def test_restart_recovery_returns_only_unfinished_runs(store):
+    for status in ('created','starting','running','completed','stopped','failed','timed_out','interrupted'):
+        store.post('/runs/'+status,json={'id':status,'status':status,'configuration':{'seed':42}})
+    recovered=store.get('/runs?unfinished_only=true').json()
+    assert {run['id'] for run in recovered}=={'starting','running'}
+    assert all(run['configuration']['seed']==42 for run in recovered)
+    assert len(store.get('/runs').json())==8
+
+def test_run_summary_avoids_large_snapshots_and_preserves_recording_details(store):
+    data={'id':'large-history','status':'completed','time':12.5,'route':{'roads':['road geometry '*10000]},'configuration':{'seed':42},'provenance':{'note':'source'*10000}}
+    store.post('/runs/large-history',json=data)
+    response=store.get('/runs?summary=true')
+    assert response.json()==[{'id':'large-history','status':'completed','time':12.5}]
+    assert len(response.content)<200
+    assert store.get('/runs/large-history').json()==data
+    assert store.get('/runs').json()==[data]
+
 def test_signal_export_keeps_broadcast_and_each_observed_reception(store):
     store.post('/runs/signals',json={'id':'signals'})
     shared={'sim_time':1,'protocol':'CAN','message_id':256,'raw':'0102','sequence':7,'source':'sensor','decoded':{'Speed':3.25,'Sequence':7}}

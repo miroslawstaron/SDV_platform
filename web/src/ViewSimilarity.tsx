@@ -24,10 +24,11 @@ export function ImageSimilarity({runId,index,error='',available=true,captureHist
  },[key,runId,index,available,captureHistory]);
  const current=result?.key===key?result:undefined;
  const value=current?.value,problem=error||current?.error;
- return <section className="image-similarity" aria-label="Image similarity" data-testid="image-similarity">
-  <div className="similarity-heading"><strong>VIEW SIMILARITY</strong><small>{index*25} m point</small></div>
+ const uploadedReference=runId?.startsWith('library-');
+ return <section className="image-similarity" aria-label="Image similarity" data-testid="image-similarity" data-help={uploadedReference?'Compare this uploaded reference against other reference images and drive captures. Similarity is 100 times one minus differing pHash bits divided by 64. 100% pHash matches reuse an existing image file, even if the incoming bytes differ. Each stored image contributes at most one uploaded reference observation.':undefined}>
+  <div className="similarity-heading"><strong>VIEW SIMILARITY</strong><small>{uploadedReference?'Uploaded reference':`${index*25} m point`}</small></div>
   <div role="status">{problem||(!available?'Waiting for street imagery':value?similarityText(value):runId?'Checking captured images…':'Start a drive to compare images')}</div>
-  {value?.status==='ready'&&!problem&&<small>Matching street images · pHash distance ≤ {value.max_distance}/{value.hash_bits}</small>}
+  {value?.status==='ready'&&!problem&&<small>Matching images · pHash distance ≤ {value.max_distance}/{value.hash_bits}</small>}
   {value?.status==='ready'&&value.too_similar&&!problem&&<div className="similarity-warning" role="alert"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 22 21H2z"/><path d="M12 9v5m0 3v1"/></svg><span>Too much similarity · Drive to another place</span></div>}
  </section>;
 }
