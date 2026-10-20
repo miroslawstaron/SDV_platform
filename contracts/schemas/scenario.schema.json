@@ -25,6 +25,152 @@
       "title": "Assertion",
       "type": "object"
     },
+    "CarlaRendering": {
+      "properties": {
+        "graphics": {
+          "default": "high",
+          "enum": [
+            "low",
+            "high"
+          ],
+          "title": "Graphics",
+          "type": "string"
+        },
+        "resolution": {
+          "default": "1080p",
+          "enum": [
+            "720p",
+            "1080p"
+          ],
+          "title": "Resolution",
+          "type": "string"
+        }
+      },
+      "title": "CarlaRendering",
+      "type": "object"
+    },
+    "DrivingScenario": {
+      "properties": {
+        "id": {
+          "maxLength": 64,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "prompt": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Prompt",
+          "type": "string"
+        },
+        "settings": {
+          "$ref": "#/$defs/DrivingScenarioSettings"
+        },
+        "unrecognized": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Unrecognized",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "prompt",
+        "settings"
+      ],
+      "title": "DrivingScenario",
+      "type": "object"
+    },
+    "DrivingScenarioSettings": {
+      "properties": {
+        "pedestrians": {
+          "default": 48,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Pedestrians",
+          "type": "integer"
+        },
+        "traffic_vehicles": {
+          "default": 8,
+          "maximum": 40,
+          "minimum": 0,
+          "title": "Traffic Vehicles",
+          "type": "integer"
+        },
+        "speed_kmh": {
+          "default": 25,
+          "maximum": 80,
+          "minimum": 5,
+          "title": "Speed Kmh",
+          "type": "number"
+        },
+        "distance_m": {
+          "default": 500,
+          "maximum": 2000,
+          "minimum": 100,
+          "title": "Distance M",
+          "type": "number"
+        },
+        "duration_seconds": {
+          "default": 180,
+          "maximum": 900,
+          "minimum": 1,
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "seed": {
+          "default": 42,
+          "maximum": 2147483647,
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "weather": {
+          "default": "clear",
+          "enum": [
+            "clear",
+            "cloudy",
+            "wet",
+            "light_rain",
+            "rain",
+            "heavy_rain",
+            "fog"
+          ],
+          "title": "Weather",
+          "type": "string"
+        },
+        "time_of_day": {
+          "default": "day",
+          "enum": [
+            "day",
+            "sunset",
+            "night"
+          ],
+          "title": "Time Of Day",
+          "type": "string"
+        },
+        "crossings": {
+          "default": "normal",
+          "enum": [
+            "normal",
+            "none",
+            "frequent"
+          ],
+          "title": "Crossings",
+          "type": "string"
+        }
+      },
+      "title": "DrivingScenarioSettings",
+      "type": "object"
+    },
     "Fault": {
       "properties": {
         "id": {
@@ -195,9 +341,36 @@
   },
   "properties": {
     "route_id": {
-      "default": "gothenburg-demo",
+      "default": "carla-city",
       "title": "Route Id",
       "type": "string"
+    },
+    "carla": {
+      "$ref": "#/$defs/CarlaRendering"
+    },
+    "scenario_id": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Scenario Id"
+    },
+    "scenario": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DrivingScenario"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "vehicle": {
       "$ref": "#/$defs/Vehicle"

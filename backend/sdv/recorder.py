@@ -2,6 +2,7 @@ import csv
 import io
 import json
 import sqlite3
+import threading
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Query
@@ -10,6 +11,8 @@ from .observation import endpoints, signal_metadata
 from .models import Selection
 
 DBPATH=Path('/data/recordings.sqlite')
+writer=None
+writer_lock=threading.Lock()
 @contextmanager
 def connection():
     # A streaming iterator resumes serially on different Starlette worker threads.
@@ -22,10 +25,19 @@ def connection():
 
 @asynccontextmanager
 async def lifespan(app):
+    global writer
     DBPATH.parent.mkdir(parents=True,exist_ok=True)
     with connection() as db:
         db.executescript('PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY,data TEXT); CREATE INDEX IF NOT EXISTS run_status ON runs(json_extract(data,\'$.status\')); CREATE TABLE IF NOT EXISTS ticks(run TEXT,t REAL,state TEXT,PRIMARY KEY(run,t)); CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT,run TEXT,t REAL,data TEXT); CREATE INDEX IF NOT EXISTS event_time ON events(run,t);')
-    yield
+    # Keep a connection alive between ticks. Closing the last WAL connection
+    # checkpoints and removes the WAL; doing that every 50 ms stalls the drive.
+    # SQLite's FULL durability and atomic state/event transactions stay intact.
+    writer=sqlite3.connect(DBPATH,timeout=10,check_same_thread=False)
+    try:yield
+    finally:
+        with writer_lock:
+            writer.close()
+            writer=None
 app=FastAPI(lifespan=lifespan)
 
 @app.get('/health')
@@ -82,9 +94,11 @@ def run(rid:str):
 @app.post('/runs/{rid}/tick')
 def write_tick(rid:str,tick:dict):
     # Commit all observations and ground truth together before live publication.
-    with connection() as db:
-        db.execute('INSERT INTO ticks VALUES(?,?,?)',(rid,tick['time'],json.dumps(tick['state'])))
-        db.executemany('INSERT INTO events(run,t,data) VALUES(?,?,?)',[(rid,e['sim_time'],json.dumps(e)) for e in tick['events']])
+    state=json.dumps(tick['state'])
+    events=[(rid,e['sim_time'],json.dumps(e)) for e in tick['events']]
+    with writer_lock,writer:
+        writer.execute('INSERT INTO ticks VALUES(?,?,?)',(rid,tick['time'],state))
+        writer.executemany('INSERT INTO events(run,t,data) VALUES(?,?,?)',events)
     return {'ok':True,'events':len(tick['events'])}
 
 @app.get('/runs/{rid}/timeline')

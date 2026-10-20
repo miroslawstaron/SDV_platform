@@ -10,7 +10,8 @@ pytestmark = pytest.mark.skipif(os.getenv('SDV_CARLA_LIVE') != '1', reason='Requ
 URL = os.getenv('SDV_URL', 'http://api:8000/api/v1')
 
 
-def test_city_motion_cameras_replay_and_real_ecu_transport():
+@pytest.mark.parametrize('graphics,resolution,dimensions', [('low', '720p', (1280, 720)), ('high', '1080p', (1920, 1080))])
+def test_city_motion_cameras_replay_and_real_ecu_transport(graphics, resolution, dimensions):
     with httpx.Client(base_url=URL, timeout=20) as client:
         def call(path, method='GET', data=None):
             response = client.request(method, path, json=data)
@@ -19,6 +20,7 @@ def test_city_motion_cameras_replay_and_real_ecu_transport():
         if call('/health')['active_run']:
             pytest.skip('Keep the existing active drive running')
         run = call('/runs', 'POST', {'route_id': 'carla-city', 'duration': 8,
+                                    'carla': {'graphics': graphics, 'resolution': resolution},
                                     'assertions': [{'kind': 'no_recorder_loss'}]})
         rid = run['id']
         try:
@@ -31,6 +33,7 @@ def test_city_motion_cameras_replay_and_real_ecu_transport():
                 time.sleep(.5)
             assert run['status'] == 'timed_out', run
             assert run['recording_valid'] and run['results'][0]['passed']
+            assert run['configuration']['carla'] == {'graphics': graphics, 'resolution': resolution}
             assert run['peak_speed'] > .5
             assert run['route']['carla_roads'] and run['route']['carla_geometry']
             early = call(f'/runs/{rid}/timeline?at=1')['state']
@@ -47,7 +50,7 @@ def test_city_motion_cameras_replay_and_real_ecu_transport():
                 response.raise_for_status()
                 assert float(response.headers['x-carla-simulation-time']) <= 4
                 image = Image.open(io.BytesIO(response.content))
-                assert image.size == (1920, 1080)
+                assert image.size == dimensions
             similarity = call(f'/runs/{rid}/images/0/similarity')
             assert similarity['status'] == 'ready'
             assert similarity['source'] == 'carla'

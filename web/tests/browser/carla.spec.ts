@@ -8,6 +8,24 @@ const state={time:5,lat:0,lng:0,heading:90,speed:4,speed_limit:6.94,charge_pct:8
 const image=readFileSync(new URL('./fixtures/tiny.png',import.meta.url));
 const similarity={status:'ready',run_id:id,station_index:2,database_images:8,database_captures:12,similar_count:5,too_similar:true,nearest_similarity_pct:96.875,hash_bits:64,max_distance:8,warning_count:5};
 
+test('live cameras keep the displayed image on conditional HTTP 304 responses',async({page})=>{
+ await page.route('**/api/v1/config',r=>r.fulfill({json:{backend:'carla'}}));
+ await page.route(`**/api/v1/runs/${id}`,r=>r.fulfill({json:run}));
+ await page.routeWebSocket(`**/api/v1/runs/${id}/stream`,socket=>socket.send(JSON.stringify({type:'snapshot',run,state})));
+ let unchanged=0;
+ await page.route('**/carla/camera/**',r=>{
+  if(r.request().headers()['if-none-match']==='"camera-frame"'){
+   unchanged++;return r.fulfill({status:304,headers:{ETag:'"camera-frame"','X-CARLA-Simulation-Time':'4.8'}});
+  }
+  return r.fulfill({body:image,contentType:'image/png',headers:{ETag:'"camera-frame"','X-CARLA-Simulation-Time':'4.8'}});
+ });
+ await page.goto(`/driver/${id}`);
+ await expect(page.getByAltText('CARLA first-person driver camera')).toBeVisible();
+ await expect.poll(()=>unchanged).toBeGreaterThan(1);
+ await expect(page.getByAltText('CARLA first-person driver camera')).toBeVisible();
+ await expect(page.locator('.carla-frame-note')).toHaveCount(0);
+});
+
 test('CARLA driver uses actual cameras and keeps independent instruments without map providers',async({page})=>{
  const external:string[]=[];
  page.on('request',request=>{if(/mapillary|tile\.openstreetmap/.test(request.url()))external.push(request.url())});

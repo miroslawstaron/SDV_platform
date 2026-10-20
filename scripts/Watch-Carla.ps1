@@ -20,9 +20,11 @@ try {
     while($true){
         try{
             $health=Invoke-RestMethod "$BaseUrl/api/v1/health" -TimeoutSec 5
-            if($health.active_run -and $health.active_run -ne $lastRun){
+            if($health.active_run){
                 $run=Invoke-RestMethod "$BaseUrl/api/v1/runs/$($health.active_run)" -TimeoutSec 5
                 $carlaRun=$run.route.backend -eq 'carla'
+                $graphics=if($run.configuration.carla.graphics -eq 'low'){'low'}else{'high'}
+                $requestedQuality=if($graphics -eq 'low'){'Low'}else{'Epic'}
                 $lastRun=$health.active_run
             }
             $needsServer=$health.active_run -and $carlaRun
@@ -39,10 +41,20 @@ try {
             })
             if($needsServer){
                 $idleSince=$null
-                if(-not $server.Count){
-                    & $launcher -InstallDirectory $runtimeRoot -Quality $Quality -ServerOnly
-                    Add-Content -LiteralPath $logPath -Value "$([DateTime]::UtcNow.ToString('o')) Started CARLA for drive $lastRun."
+                if($run.status -eq 'starting' -and (-not $health.carla_client_runtime -or $health.carla_client_runtime -eq 'windows')){& (Join-Path $PSScriptRoot 'Start-CarlaClient.ps1') -InstallDirectory $runtimeRoot}
+                $wrongQuality=@($server | Where-Object {$_.CommandLine -notmatch "(?i)(?:^|\s)-quality-level=$requestedQuality(?:\s|$)"})
+                if($wrongQuality.Count -and $run.status -eq 'starting'){
+                    & $launcher -InstallDirectory $runtimeRoot -Stop -ServerOnly
+                    $server=@()
+                }elseif($wrongQuality.Count){
+                    throw 'The active CARLA server has a different graphics quality; stop this drive before changing it.'
                 }
+                if(-not $server.Count){
+                    & $launcher -InstallDirectory $runtimeRoot -Quality $requestedQuality -ServerOnly
+                    Add-Content -LiteralPath $logPath -Value "$([DateTime]::UtcNow.ToString('o')) Started CARLA ($requestedQuality) for drive $lastRun."
+                }
+                $ready=@{run_id=$lastRun;graphics=$graphics} | ConvertTo-Json
+                Invoke-RestMethod "$BaseUrl/api/v1/carla/runtime/ready" -Method Post -ContentType 'application/json' -Body $ready -TimeoutSec 5 | Out-Null
             }elseif($server.Count){
                 if(-not $idleSince){$idleSince=[DateTime]::UtcNow}
                 if(([DateTime]::UtcNow-$idleSince).TotalSeconds -ge $IdleTimeoutSeconds){
@@ -50,6 +62,7 @@ try {
                     $latest=Invoke-RestMethod "$BaseUrl/api/v1/health" -TimeoutSec 5
                     if(-not $latest.active_run){
                         & $launcher -InstallDirectory $runtimeRoot -Stop -ServerOnly
+                        & (Join-Path $PSScriptRoot 'Start-CarlaClient.ps1') -InstallDirectory $runtimeRoot -Stop
                         Add-Content -LiteralPath $logPath -Value "$([DateTime]::UtcNow.ToString('o')) Stopped idle CARLA; RAM and GPU allocations released."
                     }
                     $idleSince=$null

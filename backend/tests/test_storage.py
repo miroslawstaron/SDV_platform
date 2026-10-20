@@ -28,6 +28,14 @@ def test_duplicate_tick_rolls_back_events(store):
     with pytest.raises(Exception):store.post('/runs/test/tick',json=tick)
     assert len(store.get('/runs/test/events').json())==1
 
+def test_tick_writer_keeps_wal_open_and_full_durability(store):
+    store.post('/runs/test',json={'id':'test'})
+    for stamp in (1,2):
+        assert store.post('/runs/test/tick',json={'time':stamp,'state':{'time':stamp},'events':[]}).status_code==200
+        assert recorder.DBPATH.with_name(recorder.DBPATH.name+'-wal').exists()
+    with recorder.writer_lock:
+        assert recorder.writer.execute('PRAGMA synchronous').fetchone()[0]==2
+
 def test_unknown_recording(store):assert store.get('/runs/missing/timeline').status_code==404
 
 def test_restart_recovery_returns_only_unfinished_runs(store):

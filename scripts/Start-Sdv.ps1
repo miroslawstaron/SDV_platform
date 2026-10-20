@@ -44,6 +44,9 @@ try {
         if($carlaRuntime -eq 'windows'){
             & docker compose stop carla
             & (Join-Path $PSScriptRoot 'Start-Carla.ps1')
+            if($configuration.services.'carla-client'.environment.CARLA_CLIENT_RUNTIME -eq 'windows'){
+                & (Join-Path $PSScriptRoot 'Start-CarlaClient.ps1')
+            }
         }elseif($carlaRuntime -eq 'docker'){
             $env:COMPOSE_PROFILES='carla-docker'
         }else{throw 'CARLA_RUNTIME must be windows or docker.'}

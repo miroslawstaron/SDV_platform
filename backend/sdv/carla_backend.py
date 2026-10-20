@@ -9,14 +9,16 @@ import multiprocessing
 import os
 from pathlib import Path
 import random
+import queue
 import socket
 import struct
 import threading
 import time
 
 from PIL import Image
+from .performance import Timings
 
-CAMERA_ROOT = Path('/data/carla')
+CAMERA_ROOT = Path(os.getenv('CARLA_CAMERA_ROOT','/data/carla'))
 
 
 class CarlaRemoteBackend:
@@ -58,19 +60,28 @@ class _Progress(dict):
     def __init__(self, queue, value):
         super().__init__(value)
         self.queue = queue
-        self.queue.put(dict(self))
+        self._publish()
+
+    def _publish(self):
+        try:self.queue.put_nowait(dict(self))
+        except queue.Full:
+            try:self.queue.get_nowait()
+            except queue.Empty:return
+            try:self.queue.put_nowait(dict(self))
+            except queue.Full:pass
 
     def update(self, *args, **kwargs):
         super().update(*args, **kwargs)
-        self.queue.put(dict(self))
+        self._publish()
 
     def __setitem__(self, key, value):
         super().__setitem__(key, value)
-        self.queue.put(dict(self))
+        self._publish()
 
 
-def _carla_process(connection, progress):
+def _carla_process(connection, progress, frames):
     backend = CarlaBackend()
+    backend.frame_queue = frames
     backend.info = _Progress(progress, backend.info)
     try:
         while True:
@@ -88,10 +99,14 @@ def _carla_process(connection, progress):
 class CarlaProcessBackend:
     """Keep CARLA extension calls outside the HTTP/native-adapter process GIL."""
     def __init__(self):
+        self._start_process()
+
+    def _start_process(self):
         context = multiprocessing.get_context('spawn')
         self.connection, child = context.Pipe()
-        self.progress = context.Queue()
-        self.process = context.Process(target=_carla_process, args=(child, self.progress), daemon=True)
+        self.progress = context.Queue(maxsize=16)
+        self.frame_queue = context.Queue(maxsize=16)
+        self.process = context.Process(target=_carla_process, args=(child, self.progress,self.frame_queue), daemon=True)
         self.process.start()
         child.close()
         self.last = {}
@@ -119,6 +134,9 @@ class CarlaProcessBackend:
         return result
 
     def load_world(self, *args):
+        # A new drive can replace the native server to change graphics. Drop
+        # all SDK / Traffic Manager connections before connecting to it again.
+        self.shutdown()
         self._call('load_world', *args)
         self.last = self._call('state')
 
@@ -129,13 +147,35 @@ class CarlaProcessBackend:
     def state(self):
         return self.last
 
+    def drain_frames(self,timeout=0):
+        frames=[]
+        while True:
+            try:frames.append(self.frame_queue.get(timeout=timeout if not frames else .01))
+            except queue.Empty:return frames
+
+    def diagnostics(self):
+        self._info.update(self._call('diagnostics'))
+        return dict(self._info)
+
     def shutdown(self):
-        if self.process.is_alive():self._call('shutdown')
+        try:
+            if self.process.is_alive():self._call('shutdown')
+        finally:
+            # Traffic Manager owns native threads even after destroying actors.
+            # Release them before the idle monitor stops the Windows server.
+            info=self.info
+            self.close()
+            self._start_process()
+            self._info.update(info,status='idle')
 
     def close(self):
         if self.process.is_alive():self.process.terminate()
         self.process.join(timeout=5)
         self.connection.close()
+        self.progress.close()
+        self.progress.join_thread()
+        self.frame_queue.close()
+        self.frame_queue.join_thread()
 
 
 def server_host():
@@ -164,12 +204,16 @@ def wait_for_server(host, port, timeout=120):
             time.sleep(min(.5, max(0, deadline - time.monotonic())))
 
 
-def city_route():
-    return {'id': 'carla-city', 'backend': 'carla', 'name': 'CARLA · City with pedestrians',
+def city_route(settings=None):
+    route = {'id': 'carla-city', 'backend': 'carla', 'name': 'CARLA · City with pedestrians',
             'world': 'Town10HD_Opt', 'distance': 500.0, 'geometry': [],
             'start': {'lat': 0, 'lng': 0}, 'destination': {'lat': 0, 'lng': 0},
             'attribution': 'CARLA Simulator · Town10HD · simulated city',
             'scenario': {'pedestrians': 48, 'traffic_vehicles': 8, 'speed_limit': 6.94}}
+    if settings:
+        route['distance'] = settings['distance_m']
+        route['scenario'] = {**settings, 'speed_limit': settings['speed_kmh'] / 3.6}
+    return route
 
 
 def fresh_signals(network, mid):
@@ -187,6 +231,13 @@ def energy_step(vehicle, speed, acceleration, dt):
 def camera_path(run_id):
     import uuid
     return CAMERA_ROOT / str(uuid.UUID(run_id))
+
+
+def camera_dimensions(route):
+    resolution = route.get('carla_rendering', {}).get('resolution')
+    if resolution:
+        return {'720p': (1280, 720), '1080p': (1920, 1080)}[resolution]
+    return int(os.getenv('CARLA_CAMERA_WIDTH', '1920')), int(os.getenv('CARLA_CAMERA_HEIGHT', '1080'))
 
 
 def remove_camera_recording(run_id):
@@ -208,10 +259,15 @@ class CarlaBackend:
                      'notice': 'CPU Vulkan rendering is slower than wall time.' if renderer == 'software' else 'Native CARLA graphics · live simulated cameras and actors.'}
         self.camera_lock = threading.Lock()
         self.image_captures = None
+        self.stream_frames = os.getenv('CARLA_FRAME_TRANSPORT') == 'http'
+        self.frame_queue = queue.Queue(maxsize=32)
 
     def capabilities(self):
         return {'backend': 'carla', 'lane_control': True, 'steering_dynamics': True,
                 'battery': 'estimated EV energy model', 'step_seconds': .05, 'cameras': ['driver', 'chase']}
+
+    def diagnostics(self):
+        return dict(self.info,performance=self.timings.summary() if hasattr(self,'timings') else {})
 
     def validate_route(self, route):
         return route.get('backend') == 'carla' and route.get('world') == 'Town10HD_Opt'
@@ -222,6 +278,7 @@ class CarlaBackend:
         if not self.validate_route(route):
             raise ValueError('Unsupported CARLA city route')
         self.info.update(status='connecting', error=None)
+        self.timings = Timings()
         self.vehicle_profile = vehicle
         self.rng = random.Random(seed)
         self.elapsed = 0
@@ -250,8 +307,12 @@ class CarlaBackend:
         settings.no_rendering_mode = True
         self.world.apply_settings(settings)
         self.world.set_pedestrians_seed(seed)
-        self.world.set_pedestrians_cross_factor(.35)
-        self.world.set_weather(carla.WeatherParameters.ClearNoon)
+        scenario = route['scenario']
+        self.world.set_pedestrians_cross_factor({'normal': .35, 'none': 0, 'frequent': .8}[scenario.get('crossings', 'normal')])
+        from .driving_scenarios import weather_parameters
+        weather = weather_parameters(scenario)
+        self.world.set_weather(carla.WeatherParameters(**weather) if 'weather' in scenario else carla.WeatherParameters.ClearNoon)
+        self.info['scenario'] = dict(scenario)
         self.info['status'] = 'populating'
         library = self.world.get_blueprint_library()
         spawns = self.map.get_spawn_points()
@@ -265,6 +326,8 @@ class CarlaBackend:
         if not self.ego:
             raise RuntimeError('No free CARLA vehicle spawn point')
         self.actors.append(self.ego)
+        night_lights = scenario.get('time_of_day') in ('sunset', 'night')
+        if night_lights:self.ego.set_light_state(carla.VehicleLightState(carla.VehicleLightState.Position | carla.VehicleLightState.LowBeam))
         physics = self.ego.get_physics_control()
         physics.mass = vehicle['mass']
         self.ego.apply_physics_control(physics)
@@ -292,7 +355,7 @@ class CarlaBackend:
         center = self.ego.get_location()
         walkers = library.filter('walker.pedestrian.*')
         candidates = []
-        for _ in range(300):
+        for _ in range(300 if scenario['pedestrians'] else 0):
             point = self.world.get_random_location_from_navigation()
             if point:
                 distance = min(point.distance(w.transform.location) for w in self.waypoints[::8])
@@ -305,10 +368,10 @@ class CarlaBackend:
                 bp.set_attribute('is_invincible', 'false')
             batch.append(carla.command.SpawnActor(bp, carla.Transform(point)))
         pedestrian_ids = []
-        for response in self.client.apply_batch_sync(batch, True):
+        for response in self.client.apply_batch_sync(batch, True) if batch else []:
             if not response.error:
                 pedestrian_ids.append(response.actor_id)
-        self.walkers = list(self.world.get_actors(pedestrian_ids))
+        self.walkers = list(self.world.get_actors(pedestrian_ids)) if pedestrian_ids else []
         self.actors.extend(self.walkers)
         # Keep the configured crowd bounded; destroy extra successful candidates.
         extra = self.walkers[route['scenario']['pedestrians']:]
@@ -317,8 +380,9 @@ class CarlaBackend:
             self.walkers = self.walkers[:route['scenario']['pedestrians']]
             self.actors = [a for a in self.actors if a not in extra]
         controller_bp = library.find('controller.ai.walker')
-        responses = self.client.apply_batch_sync([carla.command.SpawnActor(controller_bp, carla.Transform(), walker.id) for walker in self.walkers], True)
-        self.controllers = list(self.world.get_actors([r.actor_id for r in responses if not r.error]))
+        responses = self.client.apply_batch_sync([carla.command.SpawnActor(controller_bp, carla.Transform(), walker.id) for walker in self.walkers], True) if self.walkers else []
+        controller_ids = [r.actor_id for r in responses if not r.error]
+        self.controllers = list(self.world.get_actors(controller_ids)) if controller_ids else []
         for controller in self.controllers:
             controller.start()
             destination = self.world.get_random_location_from_navigation()
@@ -341,6 +405,7 @@ class CarlaBackend:
             bp.set_attribute('role_name', 'sdv-traffic')
             actor = self.world.try_spawn_actor(bp, transform)
             if actor:
+                if night_lights:actor.set_light_state(carla.VehicleLightState(carla.VehicleLightState.Position | carla.VehicleLightState.LowBeam))
                 actor.set_autopilot(True, 8005)
                 self.traffic.append(actor)
                 self.actors.append(actor)
@@ -352,18 +417,21 @@ class CarlaBackend:
             self.world.tick(120)
         self.origin = self.world.get_snapshot().timestamp.elapsed_seconds
         self.previous_location = self.ego.get_location()
-        from .carla_imagery import CameraCaptures
         self.info.update(image_captures=0)
         self.info.pop('similarity_error', None)
-        self.image_captures = CameraCaptures(run_id, self.route['distance'], self.info)
-        self.image_captures.observe_state(dict(time=0, remaining=self.route['distance'], **self._geo(self.previous_location)))
+        if not self.stream_frames:
+            from .carla_imagery import CameraCaptures
+            self.image_captures = CameraCaptures(run_id, self.route['distance'], self.info)
+            self.image_captures.observe_state(dict(time=0, remaining=self.route['distance'], **self._geo(self.previous_location)))
+        width, height = camera_dimensions(route)
+        self.info.update(rendering=route.get('carla_rendering', {}), camera_width=width, camera_height=height)
         for view, transform in [('driver', carla.Transform(carla.Location(x=.35, y=-.32, z=1.35))),
                                 ('chase', carla.Transform(carla.Location(x=-7, z=4), carla.Rotation(pitch=-18)))]:
             camera = library.find('sensor.camera.rgb')
-            camera.set_attribute('image_size_x', os.getenv('CARLA_CAMERA_WIDTH', '1920'))
-            camera.set_attribute('image_size_y', os.getenv('CARLA_CAMERA_HEIGHT', '1080'))
+            camera.set_attribute('image_size_x', str(width))
+            camera.set_attribute('image_size_y', str(height))
             camera.set_attribute('fov', '95')
-            camera.set_attribute('sensor_tick', '.2')
+            camera.set_attribute('sensor_tick', os.getenv('CARLA_CAMERA_INTERVAL','.2'))
             camera.set_attribute('enable_postprocess_effects', 'false' if self.info['renderer']=='software' else 'true')
             if camera.has_attribute('motion_blur_intensity'):
                 camera.set_attribute('motion_blur_intensity', '0')
@@ -373,11 +441,13 @@ class CarlaBackend:
             self.cameras.append(sensor)
         settings.no_rendering_mode = False
         self.world.apply_settings(settings)
+        applied_weather = self.world.get_weather()
         self.info.update(status='running', server_version=self.client.get_server_version(), world=self.map.name,
+                         weather={key: getattr(applied_weather, key) for key in {*weather, 'precipitation', 'wetness', 'fog_density'}},
                          pedestrians=len(self.walkers), traffic_vehicles=len(self.traffic), ego_id=self.ego.id,
                          energy_model='Estimated: mass, drag, rolling resistance, 90% propulsion / 60% regeneration')
         self.last = self._read()
-        self.image_captures.observe_state(self.last)
+        if self.image_captures:self.image_captures.observe_state(self.last)
         self.last['carla_route'] = self.route
 
     @staticmethod
@@ -391,18 +461,32 @@ class CarlaBackend:
     def _save_camera(self, view, image):
         try:
             stamp = max(0, round((image.timestamp - self.origin) * 1000))
-            picture = Image.frombytes('RGB', (image.width, image.height), image.raw_data, 'raw', 'BGRX')
+            with self.timings.measure('camera_convert'):
+                picture = Image.frombytes('RGB', (image.width, image.height), image.raw_data, 'raw', 'BGRX')
             data = io.BytesIO()
-            picture.save(data, format='JPEG', quality=93, subsampling=0)
+            with self.timings.measure('camera_encode'):
+                picture.save(data, format='JPEG', quality=93, subsampling=0)
+            if self.stream_frames:
+                self.frame_queue.put((view,stamp,data.getvalue()),timeout=5)
+                return
             target = self.frame_dir / view / f'{stamp:012d}.jpg'
-            with self.camera_lock:
+            with self.timings.measure('camera_write'), self.camera_lock:
                 temporary = target.with_suffix('.tmp')
                 temporary.write_bytes(data.getvalue())
                 temporary.replace(target)
+                latest=target.parent/'latest.txt'
+                latest.with_suffix('.tmp').write_text(str(stamp))
+                latest.with_suffix('.tmp').replace(latest)
             if view == 'driver' and self.image_captures:
                 self.image_captures.observe_frame(target, stamp / 1000)
         except Exception as exc:
             self.info['camera_error'] = str(exc)
+
+    def drain_frames(self):
+        frames=[]
+        while True:
+            try:frames.append(self.frame_queue.get_nowait())
+            except queue.Empty:return frames
 
     def apply_actuators(self, network):
         import carla
@@ -428,16 +512,21 @@ class CarlaBackend:
         self.ego.apply_control(carla.VehicleControl(throttle=throttle if brake < .05 else 0, brake=brake, steer=steer))
 
     def advance(self, network):
-        self.apply_actuators(network)
-        frame = self.world.tick(120)
+        with self.timings.measure('control'):
+            self.apply_actuators(network)
+        with self.timings.measure('world_tick'):
+            frame = self.world.tick(120)
         snapshot = self.world.get_snapshot()
         self.elapsed = round(snapshot.timestamp.elapsed_seconds - self.origin, 6)
-        self.last = self._read()
-        self.image_captures.observe_state(self.last)
+        with self.timings.measure('telemetry'):
+            self.last = self._read()
+        with self.timings.measure('image_pairing'):
+            if self.image_captures:self.image_captures.observe_state(self.last)
         self.last['carla_frame'] = frame
         events, self.events = self.events, []
         events = [dict(event, module='plant', protocol='SIM', sim_time=self.elapsed, monotonic_ns=time.monotonic_ns()) for event in events]
         self.info.update(sim_time=self.elapsed, frame=frame, speed=self.last['speed'])
+        if round(self.elapsed / .05) % 20 == 0:self.info['performance'] = self.timings.summary()
         return self.last, events
 
     def _read(self):

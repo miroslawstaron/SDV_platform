@@ -9,10 +9,11 @@ import httpx
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Query, Request
 from fastapi.responses import StreamingResponse, Response, FileResponse
 from starlette.concurrency import run_in_threadpool
-from . import imagery
+from . import imagery, driving_scenarios
 from .models import RunRequest, RouteRequest, Fault, ROLES, ModuleManifest
 from .observation import catalog
-from .models import Selection
+from .models import Selection, CarlaRuntimeReady, CarlaRendering, ScenarioPrompt
+from .performance import Timings
 
 client=None
 active=None
@@ -22,6 +23,7 @@ tasks={}
 run_lock=asyncio.Lock()
 gateway_status={'status':'connecting'}
 provenance={}
+carla_runtime_ready={}
 
 async def request(service,path,method='GET',data=None,timeout=None):
     options={} if timeout is None else {'timeout':httpx.Timeout(timeout,connect=5)}
@@ -130,7 +132,7 @@ async def health():
         try:return name,await request(name,'/health')
         except Exception as exc:return name,{'status':'unavailable','error':str(exc)}
     services=dict(await asyncio.gather(*(inspect(n) for n in names)))
-    return {'status':'ready' if all(v.get('status')!='unavailable' and v.get('application') not in ('failed','stopped') for v in services.values()) else 'degraded','services':services,'gateway':gateway_status,'active_run':active}
+    return {'status':'ready' if all(v.get('status')!='unavailable' and v.get('application') not in ('failed','stopped') for v in services.values()) else 'degraded','services':services,'gateway':gateway_status,'active_run':active,'carla_client_runtime':os.getenv('CARLA_CLIENT_RUNTIME',os.getenv('CARLA_RUNTIME','windows'))}
 
 @app.get('/api/v1/config')
 def config():
@@ -148,19 +150,84 @@ async def routes():
 async def carla_status():
     return await request('plant','/carla/status')
 
+
+@app.get('/api/v1/scenarios')
+def scenario_library():
+    return driving_scenarios.list_scenarios()
+
+
+@app.post('/api/v1/scenarios/preview')
+def preview_scenario(data:ScenarioPrompt):
+    try:return driving_scenarios.interpret(data.prompt)
+    except ValueError as exc:raise HTTPException(422,str(exc)) from exc
+
+
+@app.post('/api/v1/scenarios',status_code=201)
+def save_scenario(data:ScenarioPrompt):
+    try:return driving_scenarios.save_scenario(data)
+    except ValueError as exc:raise HTTPException(422,str(exc)) from exc
+
+
+@app.put('/api/v1/scenarios/{sid}')
+def update_scenario(sid:str,data:ScenarioPrompt):
+    try:return driving_scenarios.save_scenario(data,sid)
+    except KeyError as exc:raise HTTPException(404,str(exc)) from exc
+    except ValueError as exc:raise HTTPException(422,str(exc)) from exc
+
+
+@app.delete('/api/v1/scenarios/{sid}')
+def delete_scenario(sid:str):
+    try:driving_scenarios.delete_scenario(sid)
+    except KeyError as exc:raise HTTPException(404,str(exc)) from exc
+    return {'ok':True}
+
+
+@app.post('/api/v1/carla/runtime/ready')
+async def native_carla_ready(data:CarlaRuntimeReady):
+    # The Windows monitor acknowledges this drive only after the requested
+    # quality server is listening. Never attach a new client to an old server
+    # while the monitor is replacing it to change graphics quality.
+    if data.run_id!=active:raise HTTPException(409,'Drive is no longer active')
+    run=current[data.run_id]['run']
+    expected=CarlaRendering.model_validate(run['configuration'].get('carla',{}))
+    if data.graphics!=expected.graphics:raise HTTPException(409,'CARLA graphics do not match this drive')
+    carla_runtime_ready.update(run_id=data.run_id,graphics=data.graphics,updated=time.monotonic())
+    return {'ok':True}
+
+
+async def wait_for_native_carla(rid,graphics,timeout=240):
+    deadline=time.monotonic()+timeout
+    while time.monotonic()<deadline:
+        if current[rid]['stop']:return False
+        if (carla_runtime_ready.get('run_id')==rid and carla_runtime_ready.get('graphics')==graphics
+                and time.monotonic()-carla_runtime_ready.get('updated',0)<8):return True
+        await asyncio.sleep(.25)
+    raise RuntimeError('Windows CARLA monitor did not prepare the requested graphics. Restart the platform launcher.')
+
 @app.get('/api/v1/runs/{rid}/carla/camera/{view}')
-async def carla_camera(rid:str,view:str,at:float|None=Query(None,ge=0,le=900)):
+async def carla_camera(rid:str,view:str,at:float|None=Query(None,ge=0,le=900),request_body:Request=None):
     from .carla_backend import camera_path
     if view not in ('driver','chase'):raise HTTPException(404,'Unknown camera')
     run=await get_run(rid)
     if run['route'].get('backend')!='carla':raise HTTPException(404,'This drive has no CARLA camera recording')
     try:directory=camera_path(rid)/view
     except ValueError:raise HTTPException(404,'Invalid drive ID')
-    frames=sorted(directory.glob('*.jpg'))
+    frames=[]
+    if at is None:
+        try:
+            stamp=int((directory/'latest.txt').read_text())
+            frame=directory/f'{stamp:012d}.jpg'
+            if stamp>=0 and frame.is_file():frames=[frame]
+        except (FileNotFoundError,ValueError):pass
+    if not frames:frames=sorted(directory.glob('*.jpg'))
     if at is not None:frames=[p for p in frames if int(p.stem)<=round(at*1000)]
     if not frames:raise HTTPException(404,'Waiting for a CARLA camera frame at this simulation time')
     frame=frames[-1]
-    return FileResponse(frame,media_type='image/jpeg',headers={'Cache-Control':'no-store','X-CARLA-Simulation-Time':str(int(frame.stem)/1000)})
+    etag=f'"{rid}:{view}:{frame.stem}"'
+    headers={'Cache-Control':'no-store','X-CARLA-Simulation-Time':str(int(frame.stem)/1000),'ETag':etag}
+    if at is None and request_body and request_body.headers.get('if-none-match')==etag:
+        return Response(status_code=304,headers=headers)
+    return FileResponse(frame,media_type='image/jpeg',headers=headers)
 
 @app.post('/api/v1/routes/prepare',status_code=202)
 async def prepare(req:RouteRequest):return await request('maps','/jobs','POST',req.model_dump())
@@ -227,11 +294,19 @@ def modules():return [ModuleManifest.model_validate(m).model_dump() for m in jso
 
 @app.post('/api/v1/runs',status_code=201)
 async def create(req:RunRequest):
+    configuration=req.model_dump()
+    if req.scenario_id and not req.scenario:
+        try:configuration['scenario']=await run_in_threadpool(driving_scenarios.get_scenario,req.scenario_id)
+        except KeyError as exc:raise HTTPException(404,str(exc)) from exc
     if req.route_id=='carla-city':
         from .carla_backend import city_route
-        route=city_route()
+        scenario=configuration['scenario']
+        route=city_route(scenario['settings'] if scenario else None)
+        if scenario:
+            route['name']=scenario['name']
+            configuration.update(duration=scenario['settings']['duration_seconds'],seed=scenario['settings']['seed'])
     else:route=await request('maps',f'/routes/{req.route_id}')
-    run={'id':str(uuid.uuid4()),'status':'created','created_at':time.time(),'configuration':req.model_dump(),'route':route,'recording_valid':True,'time':0,'results':[],'dependencies':json.loads(Path('/app/dependencies.json').read_text()),'provenance':dict(provenance)}
+    run={'id':str(uuid.uuid4()),'status':'created','created_at':time.time(),'configuration':configuration,'route':route,'recording_valid':True,'time':0,'results':[],'dependencies':json.loads(Path('/app/dependencies.json').read_text()),'provenance':dict(provenance)}
     for f in run['configuration']['faults']:f['id']=f['id'] or str(uuid.uuid4())
     await request('recorder',f"/runs/{run['id']}",'POST',run)
     return run
@@ -250,6 +325,7 @@ async def start(rid:str):
         run=await get_run(rid)
         if run['status']!='created':raise HTTPException(409,'Create a new run to repeat this configuration')
         active=rid;run['status']='starting'
+        carla_runtime_ready.clear()
         current[rid]={'run':run,'state':None,'signals':{},'health':{},'stop':False,'lane_request':0}
         tasks[rid]=asyncio.create_task(drive(rid))
     return run
@@ -298,11 +374,19 @@ def assertions(run,state):
 async def drive(rid):
     global active
     ctx=current[rid];run=ctx['run'];cfg=run['configuration'];prior_faults=set();valid=True
+    timings=Timings()
     try:
         await request('recorder',f'/runs/{rid}','POST',run)
         await asyncio.gather(*(request(role,'/reset','POST',{}) for role in ('plant',*ROLES)))
         is_carla=run['route'].get('backend')=='carla'
-        state=await request('plant','/load','POST',{'route':run['route'],'vehicle':cfg['vehicle'],'seed':cfg['seed'],'run_id':rid},timeout=600 if is_carla else 5)
+        route=run['route']
+        if is_carla:
+            rendering=CarlaRendering.model_validate(cfg.get('carla',{})).model_dump()
+            if os.getenv('CARLA_RUNTIME')=='windows' and not await wait_for_native_carla(rid,rendering['graphics']):
+                run['status']='stopped'
+                return
+            route=dict(route,carla_rendering=rendering)
+        state=await request('plant','/load','POST',{'route':route,'vehicle':cfg['vehicle'],'seed':cfg['seed'],'run_id':rid},timeout=600 if is_carla else 5)
         if 'carla_route' in state:run['route']=state.pop('carla_route')
         ctx['state']=state
         await asyncio.sleep(1) # discovery and subscription startup, outside simulated time
@@ -323,7 +407,8 @@ async def drive(rid):
             base={'time':t,'sequence':seq,'vehicle':cfg['vehicle'],'truth':state,'lane_request':ctx['lane_request'],'modules':cfg.get('modules',{})}
             async def tick(role):
                 try:
-                    result=await request(role,'/tick','POST',dict(base,faults=[f for f in active_faults if f['module']==role]),timeout=150 if role=='plant' and is_carla else 5)
+                    with timings.measure(role):
+                        result=await request(role,'/tick','POST',dict(base,faults=[f for f in active_faults if f['module']==role]),timeout=150 if role=='plant' and is_carla else 5)
                     ctx['health'][role]=result['health'];events.extend(result.get('events',[]));return result
                 except Exception as exc:
                     ctx['health'][role]={'application':'failed','error':str(exc)}
@@ -345,17 +430,23 @@ async def drive(rid):
             run['time']=state['time'];run['peak_speed']=max(run.get('peak_speed',0),state['speed']);run['min_charge']=min(run.get('min_charge',100),state['charge_pct'])
             elapsed=time.monotonic()-tick_start
             if elapsed>.075:events.append({'run_id':rid,'module':'platform','protocol':'SIM','kind':'overrun','duration_ms':elapsed*1000,'sim_time':t,'monotonic_ns':time.monotonic_ns()})
-            await request('recorder',f'/runs/{rid}/tick','POST',{'time':state['time'],'state':state,'events':events})
+            with timings.measure('recorder'):
+                await request('recorder',f'/runs/{rid}/tick','POST',{'time':state['time'],'state':state,'events':events})
             essential=[e for e in events if e['protocol']!='CAN' or e['kind']=='tx'][-25:]
             receives=[e for e in events if e['protocol']=='CAN' and e['kind']=='rx']
             offset=seq%len(receives) if receives else 0
             display=sorted(essential+(receives[offset:]+receives[:offset])[:25-len(essential)],key=lambda e:e.get('monotonic_ns',0))
             await publish(rid,{'type':'tick','run':{'id':rid,'status':run['status'],'time':run['time']},'state':state,'signals':ctx['signals'],'health':ctx['health'],'events':display,'display_omitted':max(0,len(events)-len(display)),'faults':active_faults})
             seq+=1
+            timings.record('cycle',time.monotonic()-tick_start)
             if state['arrived']:run['status']='completed';break
             await asyncio.sleep(max(0,.05-(time.monotonic()-tick_start)))
         if run['status']=='running':run['status']='stopped' if ctx['stop'] else 'timed_out'
         run['wall_duration']=time.monotonic()-started
+        run['performance']={'stages':timings.summary()}
+        if is_carla:
+            try:run['performance']['carla']=(await request('plant','/carla/status')).get('performance',{})
+            except Exception as exc:run['performance']['diagnostic_error']=str(exc)
     except asyncio.CancelledError:run.update(status='interrupted',error='Run task cancelled',recording_valid=False)
     except Exception as exc:run.update(status='failed',error=str(exc),recording_valid=False)
     finally:

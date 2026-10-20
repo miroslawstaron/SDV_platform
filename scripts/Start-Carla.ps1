@@ -48,6 +48,7 @@ function Confirm-CarlaPorts([int]$ServerProcessId) {
     }
 }
 if($Stop){
+    if(-not $ServerOnly){& (Join-Path $PSScriptRoot 'Start-CarlaClient.ps1') -InstallDirectory $runtimeRoot -Stop}
     if(-not $ServerOnly){
         $watcher=Get-CarlaWatcher
         if($watcher){Stop-Process -Id $watcher.ProcessId -Force}
