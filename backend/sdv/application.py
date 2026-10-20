@@ -13,7 +13,7 @@ def compute(role, ctx):
     truth=ctx.get('truth',{})
     profile=ctx.get('vehicle',{})
     if role=='sensor':
-        return {'can':[[256,{'Speed':truth['speed'],'Latitude':truth['lat'],'Longitude':truth['lng'],'Heading':truth['heading'],'Remaining':truth['remaining'],'SpeedLimit':truth['speed_limit'],'LightDistance':min(6553.5,truth.get('light_distance',6553.5)),'RedLight':int(truth.get('red_light',False)),'LaneIndex':truth['lane_index'],'Sequence':seq}]]}
+        return {'can':[[256,{'Speed':truth['speed'],'Latitude':truth['lat'],'Longitude':truth['lng'],'Heading':truth['heading'],'Remaining':truth['remaining'],'SpeedLimit':truth['speed_limit'],'LightDistance':min(6553.5,truth.get('light_distance',6553.5)),'RedLight':int(truth.get('red_light',False)),'LaneIndex':truth['lane_index'],'Sequence':seq,'ObstacleDistance':min(6553.5,truth.get('obstacle_distance',6553.5)),'PedestrianHazard':int(truth.get('pedestrian_hazard',False))}]]}
     if role=='bms':
         soc=truth['charge_pct']
         return {'can':[[272,{'Charge':soc,'Energy':truth['energy_wh'],'Power':truth['power_w'],'Consumed':max(0,truth['consumed_wh']),'Regenerated':max(0,truth['regenerated_wh']),'PropulsionLimit':min(1,max(0,soc/5)),'LowBattery':int(soc<10),'Sequence':seq}]]}
@@ -32,6 +32,7 @@ def compute(role, ctx):
             target=min(net.get('intent',{}).get('target_speed',0),sensors['SpeedLimit'],profile['max_speed'])
             stopping=max(0,sensors['Remaining']-2)
             if sensors['RedLight']: stopping=min(stopping,max(0,sensors['LightDistance']-3))
+            stopping=min(stopping,max(0,sensors.get('ObstacleDistance',6553.5)-3))
             # A conservative envelope leaves room for the proportional controller's lag.
             target=min(target,math.sqrt(profile['normal_decel']*stopping))
             lane=net.get('intent',{}).get('lane_request',0)

@@ -14,6 +14,8 @@ BO_ 256 Sensors: 32 sensor
  SG_ RedLight : 160|1@1+ (1,0) [0|1] "" controller
  SG_ LaneIndex : 168|8@1+ (1,0) [0|255] "" controller
  SG_ Sequence : 176|16@1+ (1,0) [0|65535] "" controller
+ SG_ ObstacleDistance : 192|16@1+ (0.1,0) [0|6553.5] "m" controller
+ SG_ PedestrianHazard : 208|1@1+ (1,0) [0|1] "" controller
 
 BO_ 272 Battery: 32 bms
  SG_ Charge : 0|16@1+ (0.01,0) [0|100] "%" powertrain,controller

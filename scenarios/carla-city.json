@@ -1,0 +1,11 @@
+{
+  "route_id": "carla-city",
+  "seed": 42,
+  "duration": 180,
+  "vehicle": {"charge_pct": 80, "max_speed": 6.94},
+  "faults": [],
+  "assertions": [
+    {"kind": "max_speed", "value": 8},
+    {"kind": "no_recorder_loss"}
+  ]
+}

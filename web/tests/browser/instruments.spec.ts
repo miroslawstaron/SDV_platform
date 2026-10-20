@@ -55,13 +55,20 @@ test('linked reveal.js deck loads locally, navigates and fits every slide',async
  await expect(page.getByRole('link',{name:'Presentation ↗'})).toHaveAttribute('href','/presentation/');
  await page.goto('/presentation/');
  await expect(page.locator('.slides section.present h1')).toHaveText('Inside a software-defined vehicle');
- await page.keyboard.press('ArrowRight');await expect(page.locator('.slides section.present:not(.stack) h2')).toHaveText('A short drive through Gothenburg');
+ await page.keyboard.press('ArrowRight');await expect(page.locator('.slides section.present:not(.stack) h2')).toHaveText('A city drive with pedestrians');
  const count=await page.locator('.slides>section').count();expect(count).toBe(19);
  await expect(page.locator('.slides h2').filter({hasText:'Captured images and pHash matching'})).toHaveCount(1);
  await expect(page.locator('.slides h2').filter({hasText:'Similarity warnings during driving'})).toHaveCount(1);
  const chapters=await page.locator('.slides>section').evaluateAll(sections=>sections.map(section=>section.querySelectorAll(':scope>section').length||1));
- expect(chapters.reduce((sum,n)=>sum+n,0)).toBe(71);
- expect(chapters[2]).toBe(17); // Docker overview plus each of the 16 services.
+ const manifest=await (await page.request.get('/presentation/details.json')).json();
+ expect(chapters.reduce((sum,n)=>sum+n,0)).toBe(manifest.main_slides+manifest.detail_slides);
+ expect(chapters[2]).toBe(20); // Overview, 17 Docker services, native server and optional Docker server.
+ await expect(page.locator('.slides h2').filter({hasText:'Native CARLA server on Windows'})).toHaveCount(1);
+ await expect(page.locator('.slides h2').filter({hasText:'CARLA portal: the car and the city'})).toHaveCount(1);
+ await expect(page.locator('[data-main-slide="7"]')).toContainText('Capture continues when every browser window is closed');
+ await expect(page.locator('[data-main-slide="17"]')).toContainText('at or before the cursor');
+ const stale=await page.locator('.slides').innerText();
+ expect(stale).not.toContain('CARLA would require further implementation');
  await page.evaluate(()=>(window as any).Reveal.slide(1,1));
  await expect(page.locator('.slide-number')).toHaveText('2.1 / 19');
  for(let index=0;index<count;index++)for(let vertical=0;vertical<chapters[index];vertical++){

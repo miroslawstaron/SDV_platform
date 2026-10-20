@@ -1,10 +1,10 @@
 import {test,expect,type WebSocketRoute} from '@playwright/test';
-test('Gothenburg architecture, recorded sequence and complete signal export',async({page})=>{
+test('CARLA architecture, recorded sequence and complete signal export',async({page})=>{
  await page.goto('/');
- await expect(page.getByRole('combobox',{name:'Route'})).toHaveValue('gothenburg-demo');
+ await expect(page.getByRole('combobox',{name:'Route'})).toHaveValue('carla-city');
  const route=(await (await page.request.get('/api/v1/routes')).json())[0];
- expect(route.start.lat).toBeGreaterThan(57.7);expect(route.start.lat).toBeLessThan(57.71);
- expect(route.distance).toBeGreaterThan(350);expect(route.distance).toBeLessThan(400);
+ expect(route.backend).toBe('carla');expect(route.world).toBe('Town10HD_Opt');
+ expect(route.scenario.pedestrians).toBe(48);expect(route.distance).toBe(500);
  const architecture=page.getByRole('region',{name:'Vehicle E/E architecture'});
  await expect(architecture).toBeVisible();
  await architecture.getByRole('button',{name:'Inspect bms',exact:true}).click();
@@ -54,7 +54,7 @@ test('dashboard launches and driver stays connected when engineering closes',asy
  const rid=driver.url().split('/').pop();
  try{
   await expect(driver.getByText('DRIVER’S VIEW')).toBeVisible();await expect(driver.getByText('Connected',{exact:true})).toBeVisible();
-  await expect(driver.getByText('Add your Mapillary client token to enable street imagery').first()).toBeVisible();
+  await expect(driver.getByAltText('CARLA first-person driver camera')).toBeVisible({timeout:15000});
   await page.close();await expect(driver.getByText('Connected',{exact:true})).toBeVisible();
  }finally{if(rid)await context.request.post('/api/v1/runs/'+rid+'/stop');await driver.close()}
 });

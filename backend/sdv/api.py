@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 import httpx
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Query, Request
-from fastapi.responses import StreamingResponse, Response
+from fastapi.responses import StreamingResponse, Response, FileResponse
 from starlette.concurrency import run_in_threadpool
 from . import imagery
 from .models import RunRequest, RouteRequest, Fault, ROLES, ModuleManifest
@@ -74,6 +74,8 @@ async def management_delete_recordings(selection:RecordingSelection):
         for rid in value['ids']:
             current.pop(rid,None)
             tasks.pop(rid,None)
+            from .carla_backend import remove_camera_recording
+            await run_in_threadpool(remove_camera_recording,rid)
         if selection.include_images:
             # If this second store fails, identify the already committed deletion.
             try:value.update(await run_in_threadpool(imagery.delete_run_captures,value['ids']))
@@ -131,10 +133,34 @@ async def health():
     return {'status':'ready' if all(v.get('status')!='unavailable' and v.get('application') not in ('failed','stopped') for v in services.values()) else 'degraded','services':services,'gateway':gateway_status,'active_run':active}
 
 @app.get('/api/v1/config')
-def config():return {'mapillary_access_token':os.getenv('MAPILLARY_ACCESS_TOKEN',''),'modules':list(ROLES),'step_seconds':.05,'max_run_seconds':900,'backend':'sumo','imagery_provider':'mapillary','map_provider':'openstreetmap','imagery':'Mapillary panoramas and street photographs; scenery does not represent simulated objects'}
+def config():
+    carla=os.getenv('SIMULATOR_BACKEND','sumo')=='carla'
+    return {'mapillary_access_token':'' if carla else os.getenv('MAPILLARY_ACCESS_TOKEN',''),'modules':list(ROLES),'step_seconds':.05,'max_run_seconds':900,'backend':'carla' if carla else 'sumo','imagery_provider':'carla' if carla else 'mapillary','map_provider':'carla' if carla else 'openstreetmap','imagery':'Live CARLA cameras and simulated actors' if carla else 'Mapillary panoramas and street photographs; scenery does not represent simulated objects'}
 
 @app.get('/api/v1/routes')
-async def routes():return await request('maps','/routes')
+async def routes():
+    if os.getenv('SIMULATOR_BACKEND','sumo')=='carla':
+        from .carla_backend import city_route
+        return [city_route()]
+    return await request('maps','/routes')
+
+@app.get('/api/v1/carla/status')
+async def carla_status():
+    return await request('plant','/carla/status')
+
+@app.get('/api/v1/runs/{rid}/carla/camera/{view}')
+async def carla_camera(rid:str,view:str,at:float|None=Query(None,ge=0,le=900)):
+    from .carla_backend import camera_path
+    if view not in ('driver','chase'):raise HTTPException(404,'Unknown camera')
+    run=await get_run(rid)
+    if run['route'].get('backend')!='carla':raise HTTPException(404,'This drive has no CARLA camera recording')
+    try:directory=camera_path(rid)/view
+    except ValueError:raise HTTPException(404,'Invalid drive ID')
+    frames=sorted(directory.glob('*.jpg'))
+    if at is not None:frames=[p for p in frames if int(p.stem)<=round(at*1000)]
+    if not frames:raise HTTPException(404,'Waiting for a CARLA camera frame at this simulation time')
+    frame=frames[-1]
+    return FileResponse(frame,media_type='image/jpeg',headers={'Cache-Control':'no-store','X-CARLA-Simulation-Time':str(int(frame.stem)/1000)})
 
 @app.post('/api/v1/routes/prepare',status_code=202)
 async def prepare(req:RouteRequest):return await request('maps','/jobs','POST',req.model_dump())
@@ -201,7 +227,10 @@ def modules():return [ModuleManifest.model_validate(m).model_dump() for m in jso
 
 @app.post('/api/v1/runs',status_code=201)
 async def create(req:RunRequest):
-    route=await request('maps',f'/routes/{req.route_id}')
+    if req.route_id=='carla-city':
+        from .carla_backend import city_route
+        route=city_route()
+    else:route=await request('maps',f'/routes/{req.route_id}')
     run={'id':str(uuid.uuid4()),'status':'created','created_at':time.time(),'configuration':req.model_dump(),'route':route,'recording_valid':True,'time':0,'results':[],'dependencies':json.loads(Path('/app/dependencies.json').read_text()),'provenance':dict(provenance)}
     for f in run['configuration']['faults']:f['id']=f['id'] or str(uuid.uuid4())
     await request('recorder',f"/runs/{run['id']}",'POST',run)
@@ -272,12 +301,16 @@ async def drive(rid):
     try:
         await request('recorder',f'/runs/{rid}','POST',run)
         await asyncio.gather(*(request(role,'/reset','POST',{}) for role in ('plant',*ROLES)))
-        state=await request('plant','/load','POST',{'route':run['route'],'vehicle':cfg['vehicle'],'seed':cfg['seed']})
+        is_carla=run['route'].get('backend')=='carla'
+        state=await request('plant','/load','POST',{'route':run['route'],'vehicle':cfg['vehicle'],'seed':cfg['seed'],'run_id':rid},timeout=600 if is_carla else 5)
+        if 'carla_route' in state:run['route']=state.pop('carla_route')
         ctx['state']=state
         await asyncio.sleep(1) # discovery and subscription startup, outside simulated time
         run['status']='running';started=time.monotonic();seq=0;previous_start=None
+        await request('recorder',f'/runs/{rid}','POST',run)
+        await publish(rid,{'type':'started','run':run,'state':state,'signals':{},'health':ctx['health']})
         while run['time']<cfg['duration'] and not ctx['stop']:
-            tick_start=time.monotonic();t=round(seq*.05,6);events=[]
+            tick_start=time.monotonic();t=round(state['time'],6);events=[]
             if previous_start is not None and tick_start-previous_start>.075:
                 events.append({'module':'platform','protocol':'SIM','kind':'overrun','duration_ms':(tick_start-previous_start)*1000,'sim_time':t,'monotonic_ns':time.monotonic_ns()})
             previous_start=tick_start
@@ -290,7 +323,7 @@ async def drive(rid):
             base={'time':t,'sequence':seq,'vehicle':cfg['vehicle'],'truth':state,'lane_request':ctx['lane_request'],'modules':cfg.get('modules',{})}
             async def tick(role):
                 try:
-                    result=await request(role,'/tick','POST',dict(base,faults=[f for f in active_faults if f['module']==role]))
+                    result=await request(role,'/tick','POST',dict(base,faults=[f for f in active_faults if f['module']==role]),timeout=150 if role=='plant' and is_carla else 5)
                     ctx['health'][role]=result['health'];events.extend(result.get('events',[]));return result
                 except Exception as exc:
                     ctx['health'][role]={'application':'failed','error':str(exc)}
@@ -327,7 +360,7 @@ async def drive(rid):
     except Exception as exc:run.update(status='failed',error=str(exc),recording_valid=False)
     finally:
         run['results']=assertions(run,ctx['state'] or {})
-        try:await request('plant','/shutdown','POST',{})
+        try:await request('plant','/shutdown','POST',{},timeout=150 if run['route'].get('backend')=='carla' else 5)
         except Exception:pass
         try:await request('recorder',f'/runs/{rid}','POST',run)
         except Exception:run.update(status='failed',recording_valid=False,error='Recorder unavailable; final metadata could not be saved')
@@ -393,6 +426,8 @@ async def delete(rid:str):
         if active==rid:raise HTTPException(409,'Stop run before deleting it')
         value=await request('recorder',f'/runs/{rid}','DELETE')
         current.pop(rid,None)
+        from .carla_backend import remove_camera_recording
+        await run_in_threadpool(remove_camera_recording,rid)
         return value
 
 @app.get('/api/v1/telemetry')

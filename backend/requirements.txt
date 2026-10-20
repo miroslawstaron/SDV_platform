@@ -12,3 +12,4 @@ kuksa-client==0.4.3
 pyproj==3.7.1
 rtree==1.4.0
 Pillow==11.3.0
+carla==0.9.16

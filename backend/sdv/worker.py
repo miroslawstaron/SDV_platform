@@ -74,9 +74,28 @@ def reset():
 
 @app.post('/load')
 def load(ctx:dict):
+    global plant
     if ROLE!='plant': raise HTTPException(400,'Only plant loads worlds')
-    plant.load_world(ctx['route'],ctx['vehicle'],ctx['seed'])
+    use_carla=ctx['route'].get('backend')=='carla'
+    from .carla_backend import CarlaRemoteBackend as CarlaBackend
+    if isinstance(plant,CarlaBackend)!=use_carla:
+        plant.shutdown()
+        if hasattr(plant,'close'):plant.close()
+        from .simulator import SumoBackend
+        plant=CarlaBackend() if use_carla else SumoBackend()
+    try:
+        if use_carla:plant.load_world(ctx['route'],ctx['vehicle'],ctx['seed'],ctx['run_id'])
+        else:plant.load_world(ctx['route'],ctx['vehicle'],ctx['seed'])
+    except Exception as exc:
+        if use_carla:plant.info.update(status='failed',error=str(exc))
+        try:plant.shutdown()
+        except Exception:pass
+        raise HTTPException(503,f'Simulator startup failed: {exc}') from exc
     return plant.state()
+
+@app.get('/carla/status')
+def carla_status():
+    return getattr(plant,'info',{'backend':'carla','status':'idle'})
 
 @app.post('/shutdown')
 def shutdown():

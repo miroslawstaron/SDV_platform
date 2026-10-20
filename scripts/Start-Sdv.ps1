@@ -35,6 +35,19 @@ try {
     $port=$configuration.services.web.ports[0].published
     $dashboardUrl="http://localhost:$port"
     $existing=Get-PlatformHealth 'http://localhost:8000'
+    $carlaRuntime='windows'
+    if(Test-Path -LiteralPath '.env'){
+        $runtimeEntry=Get-Content -LiteralPath '.env' | Where-Object {$_ -match '^CARLA_RUNTIME='} | Select-Object -Last 1
+        if($runtimeEntry){$carlaRuntime=($runtimeEntry -split '=',2)[1].Trim()}
+    }
+    if($configuration.services.api.environment.SIMULATOR_BACKEND -eq 'carla' -and -not $existing.active_run){
+        if($carlaRuntime -eq 'windows'){
+            & docker compose stop carla
+            & (Join-Path $PSScriptRoot 'Start-Carla.ps1')
+        }elseif($carlaRuntime -eq 'docker'){
+            $env:COMPOSE_PROFILES='carla-docker'
+        }else{throw 'CARLA_RUNTIME must be windows or docker.'}
+    }
     if ($existing.active_run) {
         Write-Host "Drive $($existing.active_run) is already active; starting only its web displays."
         & docker compose up -d --no-deps --wait --wait-timeout $StartupTimeoutSeconds web instruments

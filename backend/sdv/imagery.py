@@ -106,7 +106,8 @@ def capture(run_id, station_index, data, provider_image_id, sim_time, lat, lng, 
 
 def capture_metadata(row):
     value=dict(row)
-    value['source']='uploaded' if value['run_id'].startswith('library-') else 'mapillary'
+    value['source']=('uploaded' if value['run_id'].startswith('library-') else
+                     'carla' if value['provider_image_id'].startswith('carla:driver:') else 'mapillary')
     if value['source']=='uploaded':value.update(lat=None,lng=None)
     return value
 

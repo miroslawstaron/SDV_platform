@@ -3,6 +3,7 @@ import 'mapillary-js/dist/mapillary.css';
 import {api,useStream} from './api';
 import {MapView} from './MapView';
 import {Brand} from './Brand';
+import {CarlaDriver} from './CarlaView';
 import {distance} from './geo';
 import {imageMatches,nearbyImages} from './mapillary';
 import type {StreetImage} from './mapillary';
@@ -26,7 +27,7 @@ export function Driver({id,accessToken}:{id:string;accessToken:string}){
  useEffect(()=>()=>{for(const controller of captureControllers.current)controller.abort();captures.current.clear()},[id]);
  useEffect(()=>{alive.current=true;api<Run>(`/runs/${id}`).then(setRun).catch(error=>setSetupError(error.message));return()=>{alive.current=false}},[id]);
  useEffect(()=>{
-  if(!accessToken||!run?.route)return;
+  if(!accessToken||!run?.route||run.route.backend==='carla')return;
   let dead=false;let group:Awaited<ReturnType<typeof createViewerGroup>>|undefined;
   setSetupError('');setActiveSlot(-1);
   const route=run.route,stations=routeStations(route);
@@ -100,6 +101,8 @@ export function Driver({id,accessToken}:{id:string;accessToken:string}){
  const offset=state&&image?distance(state,image):undefined;
  const entries=cache.current?.entries||[],preloaded=entries.filter(entry=>entry.status==='ready').length;
  const status=!accessToken?missingToken:setupError||message;
+ if(!run)return <div className="startup">{setupError||'Loading drive…'}</div>;
+ if(run.route.backend==='carla')return <CarlaDriver id={id} run={run} state={state} connected={connected} replaying={replaying.current}/>;
  return <div className="driver-shell"><header><Brand subtitle="DRIVER’S VIEW"/><span className={`pill ${connected?'good':''}`}>{connected?'Connected':'Reconnecting'}</span><nav className="driver-nav"><a href="/presentation/" target="_blank" rel="noreferrer">How it works ↗</a><a href="/" target="_blank" rel="noreferrer">Engineering dashboard ↗</a></nav></header>
  <main className="driver-stage"><section className="instrument-pane" aria-label="Vehicle instrument dashboard"><iframe title="Vehicle instrument dashboard" src={`/instruments/?run=${encodeURIComponent(id)}`}/><a className="instrument-link" href={`/instruments/?run=${encodeURIComponent(id)}`} target="_blank" rel="noreferrer">Open instruments separately ↗</a></section><section className="driver-scene" aria-label="Map and street imagery"><div className={`panorama ${available?'':'hidden'}`} data-testid="panorama" data-station={index} data-preloaded={preloaded} onPointerDown={()=>setFollow(false)} onWheel={()=>setFollow(false)}>{[0,1,2].map(value=><div ref={element=>{holders.current[value]=element}} key={value} className={`panorama-slot ${value===activeSlot?'visible':''}`}/>)}</div><div className={`driver-fallback ${available?'driver-location-map':''}`} aria-label="Authoritative vehicle location"><MapView route={run?.route} state={state} compact/>{!available&&<div className="fallback-label">{status}</div>}</div>
  <div className="driver-controls"><button className={follow?'primary':''} onClick={()=>setFollow(!follow)}>{follow?'Following vehicle':'Follow vehicle'}</button><span>{status}{offset!==undefined?` · ${offset.toFixed(0)} m imagery offset`:''}{image?.capturedAt?` · Captured ${new Date(image.capturedAt).toISOString().slice(0,10)}`:''}<br/><small>{IMAGE_INTERVAL} m image steps · {index*IMAGE_INTERVAL} m point · Preloaded {preloaded}/{entries.length} positions</small></span><span>{run?.status} · {(state?.time||0).toFixed(1)} s</span>{captureError?.index===index&&<div className="capture-feedback" role="alert"><span>{captureError.message}</span><button onClick={()=>{captures.current.delete(`${id}:${index}`);setCaptureError(undefined);bump()}}>Retry capture</button></div>}</div></section></main>

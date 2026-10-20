@@ -1,8 +1,9 @@
 import {test,expect,type WebSocketRoute} from '@playwright/test';
 
-test('engineering dashboard compares the current station and discards a late earlier result',async({page})=>{
+for(const backend of ['sumo','carla']){
+test(`${backend} engineering dashboard compares the current station and discards a late earlier result`,async({page})=>{
  const origin={lat:57.7,lng:11.97};
- const run={id:'similarity-dashboard',status:'running',time:20,route:{id:'gothenburg-demo',name:'Test road',distance:200,geometry:[origin,{...origin,lat:57.702}],start:origin,destination:{...origin,lat:57.702},attribution:'Test route'},configuration:{},recording_valid:true};
+ const run={id:'similarity-dashboard',status:'running',time:20,route:{id:'gothenburg-demo',backend,name:'Test road',distance:200,geometry:[origin,{...origin,lat:57.702}],start:origin,destination:{...origin,lat:57.702},attribution:'Test route'},configuration:{},recording_valid:true};
  const sockets:WebSocketRoute[]=[];let releaseOld:(()=>void)|undefined;
  await page.route('**/api/v1/config',route=>route.fulfill({json:{mapillary_access_token:''}}));
  await page.route('**/api/v1/health',route=>route.fulfill({json:{status:'ready',active_run:null}}));
@@ -27,4 +28,5 @@ test('engineering dashboard compares the current station and discards a late ear
  releaseOld!();await page.waitForTimeout(100);await expect(card).toContainText('25 m point');
  send(50);await expect(card).toContainText('0 similar captures');await expect(card.getByRole('alert')).toHaveCount(0);
 });
+}
 

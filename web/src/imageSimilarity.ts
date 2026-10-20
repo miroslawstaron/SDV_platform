@@ -19,7 +19,7 @@ export async function captureStreetImage(runId:string,index:number,image:StreetI
 }
 
 export function similarityText(value:ImageSimilarityResult){
- if(value.status!=='ready')return 'Waiting for a captured street image';
+ if(value.status!=='ready')return 'Waiting for a captured camera image';
  const closest=value.nearest_similarity_pct===null?'No other captures yet':`${value.nearest_similarity_pct.toFixed(1)}% closest match`;
  return `${closest} · ${value.similar_count} similar captures · ${value.database_images} unique images${value.database_captures!==undefined?` · ${value.database_captures} captures stored`:''}`;
 }

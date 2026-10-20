@@ -1,80 +1,7 @@
 {
-  "captured_on": "2026-10-12",
-  "capture_method": "Screenshots of the actual UI; saved state and events displayed through an isolated browser replay stream. No recording, image capture or fault writes.",
+  "captured_on": "2026-10-20",
+  "capture_method": "Actual UI screenshots from saved CARLA state, events and camera frames, sent through isolated browser replay streams. No server writes. Historical fault examples retain their original source and date.",
   "assets": {
-    "engineering-overview": {
-      "file": "screenshots/engineering-overview.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "route": "Gothenburg demonstration",
-      "sample_time": 8,
-      "kind": "recorded replay"
-    },
-    "engineering-route": {
-      "file": "screenshots/engineering-route.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "route": "Gothenburg demonstration",
-      "sample_time": 8,
-      "kind": "recorded replay"
-    },
-    "engineering-network": {
-      "file": "screenshots/engineering-network.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "route": "Gothenburg demonstration",
-      "sample_time": 8,
-      "kind": "recorded replay"
-    },
-    "architecture-contracts": {
-      "file": "screenshots/architecture-contracts.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "route": "Gothenburg demonstration",
-      "sample_time": 8,
-      "kind": "recorded replay"
-    },
-    "recordings-export": {
-      "file": "screenshots/recordings-export.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "route": "Gothenburg demonstration",
-      "sample_time": 8,
-      "kind": "recorded replay"
-    },
-    "signals-export-choice": {
-      "file": "screenshots/signals-export-choice.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "route": "Gothenburg demonstration",
-      "sample_time": 8,
-      "kind": "recorded replay",
-      "description": "Keyboard focus highlights the All signals CSV export link; no download or server write was performed."
-    },
-    "communication-events": {
-      "file": "screenshots/communication-events.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "route": "Gothenburg demonstration",
-      "sample_time": 8,
-      "kind": "recorded replay"
-    },
-    "replay-controls": {
-      "file": "screenshots/replay-controls.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "route": "Gothenburg demonstration",
-      "sample_time": 8,
-      "kind": "recorded replay"
-    },
-    "rerun-configuration": {
-      "file": "screenshots/rerun-configuration.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "route": "Gothenburg demonstration",
-      "sample_time": 8,
-      "kind": "recorded replay",
-      "description": "Saved configuration selected; rerun button focused without starting a new run."
-    },
-    "truth-normal": {
-      "file": "screenshots/truth-normal.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "route": "Gothenburg demonstration",
-      "sample_time": 8,
-      "kind": "recorded replay",
-      "description": "Ground truth and reported speed from saved normal-drive samples; tick packets populate the UI chart locally."
-    },
     "truth-substituted": {
       "file": "screenshots/truth-substituted.png",
       "run_id": "da2ea0a8-63c6-4383-8098-17faf9725653",
@@ -90,7 +17,10 @@
         "signal": "Speed",
         "value": 80,
         "delay_ms": 300
-      }
+      },
+      "captured_on": "2026-10-12",
+      "backend": "sumo",
+      "description": "Historical SUMO fault example."
     },
     "fault-configuration": {
       "file": "screenshots/fault-configuration.png",
@@ -108,7 +38,9 @@
         "value": 80,
         "delay_ms": 300
       },
-      "description": "Form settings shown for explanation; no fault was injected into the finished recording. Active badge is reconstructed from its saved schedule."
+      "description": "Historical SUMO fault example. Form settings shown for explanation; no fault was injected into the finished recording. Active badge is reconstructed from its saved schedule.",
+      "captured_on": "2026-10-12",
+      "backend": "sumo"
     },
     "controller-outage": {
       "file": "screenshots/controller-outage.png",
@@ -125,94 +57,241 @@
         "signal": null,
         "value": null,
         "delay_ms": 300
-      }
+      },
+      "captured_on": "2026-10-12",
+      "backend": "sumo",
+      "description": "Historical SUMO fault example."
     },
-    "similarity-dashboard": {
-      "file": "screenshots/similarity-dashboard.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "station_index": 14,
-      "provider_image_id": "269127888831011",
-      "source_captured_at": 1685210250277,
-      "lat": 57.70037573903,
-      "lng": 11.96539732961,
-      "phash": "da99bc4ea6aa82c6",
-      "kind": "saved Mapillary source image; browser gallery screenshot"
+    "engineering-overview": {
+      "file": "screenshots/engineering-overview.png",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
+      "sample_time": 8,
+      "kind": "recorded CARLA replay"
     },
-    "similarity-exact": {
-      "file": "screenshots/similarity-exact.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "station_index": 14,
-      "provider_image_id": "269127888831011",
-      "source_captured_at": 1685210250277,
-      "lat": 57.70037573903,
-      "lng": 11.96539732961,
-      "phash": "da99bc4ea6aa82c6",
-      "kind": "saved Mapillary source image; browser gallery screenshot",
-      "description": "Cropped to source metadata, similarity summary and the first three comparisons so exact repeats and a below-threshold example remain legible."
+    "engineering-route": {
+      "file": "screenshots/engineering-route.png",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
+      "sample_time": 8,
+      "kind": "recorded CARLA replay"
     },
-    "image-provenance": {
-      "file": "screenshots/image-provenance.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "station_index": 14,
-      "provider_image_id": "269127888831011",
-      "source_captured_at": 1685210250277,
-      "lat": 57.70037573903,
-      "lng": 11.96539732961,
-      "phash": "da99bc4ea6aa82c6",
-      "kind": "saved Mapillary source image; browser gallery screenshot"
+    "engineering-network": {
+      "file": "screenshots/engineering-network.png",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
+      "sample_time": 8,
+      "kind": "recorded CARLA replay"
     },
-    "similarity-matching-only": {
-      "file": "screenshots/similarity-matching-only.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "station_index": 14,
-      "provider_image_id": "269127888831011",
-      "source_captured_at": 1685210250277,
-      "lat": 57.70037573903,
-      "lng": 11.96539732961,
-      "phash": "da99bc4ea6aa82c6",
-      "kind": "saved Mapillary source image; browser gallery screenshot"
+    "architecture-contracts": {
+      "file": "screenshots/architecture-contracts.png",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
+      "sample_time": 8,
+      "kind": "recorded CARLA replay"
+    },
+    "recordings-export": {
+      "file": "screenshots/recordings-export.png",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
+      "sample_time": 8,
+      "kind": "recorded CARLA replay"
+    },
+    "signals-export-choice": {
+      "file": "screenshots/signals-export-choice.png",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
+      "sample_time": 8,
+      "kind": "recorded CARLA replay",
+      "description": "Export link focused without downloading or changing the recording."
+    },
+    "communication-events": {
+      "file": "screenshots/communication-events.png",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
+      "sample_time": 8,
+      "kind": "recorded CARLA replay"
+    },
+    "replay-controls": {
+      "file": "screenshots/replay-controls.png",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
+      "sample_time": 8,
+      "kind": "recorded CARLA replay"
+    },
+    "rerun-configuration": {
+      "file": "screenshots/rerun-configuration.png",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
+      "sample_time": 8,
+      "kind": "recorded CARLA replay",
+      "description": "Rerun button focused without starting a new drive."
+    },
+    "truth-normal": {
+      "file": "screenshots/truth-normal.png",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
+      "sample_time": 8,
+      "kind": "recorded CARLA replay"
     },
     "driver-view": {
       "file": "screenshots/driver-view.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "route": "Gothenburg demonstration",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
       "sample_time": 8,
-      "kind": "recorded replay",
-      "street_view_available": true
+      "kind": "recorded CARLA replay",
+      "camera_dimensions": [
+        1920,
+        1080
+      ]
     },
     "driver-instruments": {
       "file": "screenshots/driver-instruments.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "route": "Gothenburg demonstration",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
       "sample_time": 8,
-      "kind": "recorded replay",
-      "description": "Independent instrument frame using saved simulator ground truth."
+      "kind": "recorded CARLA replay",
+      "camera_dimensions": [
+        1920,
+        1080
+      ],
+      "description": "Close-up of actual speed, similarity and estimated battery state in the independent instruments."
     },
     "imagery-example": {
       "file": "screenshots/imagery-example.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "route": "Gothenburg demonstration",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
       "sample_time": 8,
-      "kind": "recorded replay"
+      "kind": "recorded CARLA replay",
+      "camera_dimensions": [
+        1920,
+        1080
+      ],
+      "description": "Full-screen CARLA camera at the recorded simulation time."
     },
     "driver-similarity-warning": {
       "file": "screenshots/driver-similarity-warning.png",
-      "run_id": "32ca3334-72d3-4c1c-a315-9b3e9e4b81a2",
-      "route": "Gothenburg demonstration",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
+      "sample_time": 0.25,
+      "kind": "recorded CARLA replay with actual database warning",
+      "description": "The live similarity database supplies the five-match warning. No staged comparison response."
+    },
+    "carla-portal": {
+      "file": "screenshots/carla-portal.png",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
       "sample_time": 8,
-      "kind": "illustrative warning state on recorded driver view",
-      "description": "Only the comparison response is staged at five matches to illustrate the warning. No captures or hashes are inserted."
+      "kind": "recorded CARLA replay"
     },
-    "route-pins": {
-      "file": "screenshots/route-pins.png",
-      "kind": "illustrative route-selection UI",
-      "description": "Example map pins selected in the browser; no route preparation request was submitted."
+    "carla-world": {
+      "file": "screenshots/carla-world.png",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
+      "sample_time": 8,
+      "kind": "recorded CARLA replay"
     },
-    "route-prepared": {
-      "file": "screenshots/route-prepared.png",
-      "kind": "actual bundled prepared route",
-      "route": "Gothenburg demonstration",
-      "description": "Bundled route loaded from the real API; screenshot illustrates reviewing a prepared route before Start drive."
+    "carla-recording": {
+      "file": "screenshots/carla-recording.png",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
+      "sample_time": 8,
+      "kind": "recorded CARLA replay"
+    },
+    "similarity-dashboard": {
+      "file": "screenshots/similarity-dashboard.png",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
+      "sample_time": 5.1,
+      "kind": "saved CARLA driver-camera capture in the shared pHash library",
+      "station_index": 1,
+      "provider_image_id": "carla:driver:000000005100",
+      "source_captured_at": null,
+      "lat": 0.0000836808160007446,
+      "lng": -0.0004170773516871877,
+      "phash": "929356a515f18775"
+    },
+    "similarity-exact": {
+      "file": "screenshots/similarity-exact.png",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
+      "sample_time": 5.1,
+      "kind": "saved CARLA driver-camera capture in the shared pHash library",
+      "station_index": 1,
+      "provider_image_id": "carla:driver:000000005100",
+      "source_captured_at": null,
+      "lat": 0.0000836808160007446,
+      "lng": -0.0004170773516871877,
+      "phash": "929356a515f18775",
+      "description": "First three actual comparison rows, cropped for legibility."
+    },
+    "image-provenance": {
+      "file": "screenshots/image-provenance.png",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
+      "sample_time": 5.1,
+      "kind": "saved CARLA driver-camera capture in the shared pHash library",
+      "station_index": 1,
+      "provider_image_id": "carla:driver:000000005100",
+      "source_captured_at": null,
+      "lat": 0.0000836808160007446,
+      "lng": -0.0004170773516871877,
+      "phash": "929356a515f18775"
+    },
+    "similarity-matching-only": {
+      "file": "screenshots/similarity-matching-only.png",
+      "captured_on": "2026-10-20",
+      "run_id": "3e4e06bc-6d95-4341-8e88-b2d703cfd4f2",
+      "route": "CARLA · City with pedestrians",
+      "backend": "carla",
+      "sample_time": 5.1,
+      "kind": "saved CARLA driver-camera capture in the shared pHash library",
+      "station_index": 1,
+      "provider_image_id": "carla:driver:000000005100",
+      "source_captured_at": null,
+      "lat": 0.0000836808160007446,
+      "lng": -0.0004170773516871877,
+      "phash": "929356a515f18775"
     }
   }
 }

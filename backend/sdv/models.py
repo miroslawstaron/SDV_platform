@@ -70,7 +70,7 @@ class Assertion(BaseModel):
     value: float = 0
 
 class RunRequest(BaseModel):
-    route_id: str = 'gothenburg-demo'
+    route_id: str = 'carla-city'
     vehicle: Vehicle = Field(default_factory=Vehicle)
     seed: int = 42
     modules: dict[str,dict] = Field(default_factory=dict)

@@ -8,6 +8,7 @@ pytestmark=pytest.mark.skipif(os.getenv('SDV_LIVE')!='1',reason='Requires runnin
 URL=os.getenv('SDV_URL','http://api:8000/api/v1')
 
 def call(path,method='GET',data=None):
+    if path=='/runs' and method=='POST':data={'route_id':'gothenburg-demo',**(data or {})}
     r=httpx.request(method,URL+path,json=data,timeout=10);r.raise_for_status();return r.json()
 
 def run_scenario(configuration,timeout=180):

@@ -33,6 +33,12 @@ print(json.dumps({"package":"eclipse-sumo==1.18.0","version":subprocess.check_ou
     $lock=@{schema_version='1.0';recorded_at=[DateTime]::UtcNow.ToString('o');images=$images;sumo=$sumo[0];python_packages=@($packages);frontend_dependencies=$frontend.dependencies;frontend_dev_dependencies=$frontend.devDependencies;npm_lock_sha256=(Get-SdvSha256 web/package-lock.json);vss_sha256=(Get-SdvSha256 contracts/vss.json);osm_sha256=(Get-SdvSha256 backend/fixtures/gothenburg.osm.xml)}
     $lock.presentation=@{repository='https://github.com/hakimel/reveal.js';version='6.0.2';license='MIT';runtime_sha256=(Get-SdvSha256 web/public/presentation/vendor/reveal.js);adaptation='Locally served Metriczone SDV guide with speaker notes and print layout'}
     $lock.netconvert=$converter
+    $lock.carla=@{version='0.9.16';world='Town10HD_Opt';runtime='Native Windows Vulkan (default); optional Docker host networking';cameras=@('driver','chase');battery='explicit EV energy estimate';scene='48 pedestrians, 8 traffic vehicles'}
+    $nativeCarlaManifest=Join-Path $env:LOCALAPPDATA 'SDV/CARLA/0.9.16/sdv-process.json'
+    if(Test-Path -LiteralPath $nativeCarlaManifest){
+        $nativeCarla=Get-Content -LiteralPath $nativeCarlaManifest -Raw | ConvertFrom-Json
+        $lock.carla.native_executable_sha256=Get-SdvSha256 $nativeCarla.executable
+    }
     $lock.visual_identity=@{logo_sha256=(Get-SdvSha256 web/public/assets/metriczone-logo.png);source='User supplied Metriczone measurement ecosystem logo; original file copied unchanged'}
     $lock.instruments=@{manifest_sha256=(Get-SdvSha256 instruments/manifest.json);image='sdv-instruments:local';contract='/?run={run_id}; GET /health; independent /api/v1 run stream'}
     $json=$lock | ConvertTo-Json -Depth 8

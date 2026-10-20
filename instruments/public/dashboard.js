@@ -19,6 +19,7 @@ function warnings(){
  else if(['running','starting'].includes(run.status)&&Date.now()-lastReceived>1500)list.push('Vehicle updates delayed · last received values');
  if(lastState.charge_pct<10)list.push('LOW BATTERY');
  if(lastState.red_light)list.push('RED TRAFFIC SIGNAL');
+ if(lastState.pedestrian_hazard)list.push('PEDESTRIAN AHEAD');
  if(run.recording_valid===false)list.push('Recording incomplete');
  $('warnings').textContent=list.length?list.join(' · '):lastState.arrived?'Destination reached':run.status==='completed'?'Journey complete':'Vehicle systems normal';
  $('warnings').classList.toggle('warning',list.length>0);
@@ -28,7 +29,7 @@ function render(packet){
  run={...run,...packet.run};
  $('mode').textContent=packet.type==='replay'?'REPLAY':String(run.status||'ready').toUpperCase();
  if(run.route)$('route-name').textContent=run.route.name;
- if(run.configuration?.vehicle?.capacity_wh)$('capacity').textContent=`${(run.configuration.vehicle.capacity_wh/1000).toFixed(0)} kWh EV`;
+ if(run.configuration?.vehicle?.capacity_wh)$('capacity').textContent=`${(run.configuration.vehicle.capacity_wh/1000).toFixed(0)} kWh EV${run.route?.backend==='carla'?' · estimated':''}`;
  if(!packet.state)return;
  const state=packet.state;lastState=state;lastReceived=Date.now();
  const speed=Math.max(0,finite(state.speed)*3.6),charge=clamp(finite(state.charge_pct),0,100),power=finite(state.power_w)/1000;
@@ -66,7 +67,7 @@ async function refreshSimilarity(force=false){
   if(!response.ok)throw new Error('Similarity unavailable');
   const value=await response.json();
   if(closed||station!==similarityStation||similarityController!==controller)return;
-  $('similarity-value').textContent=value.status==='ready'?`${value.nearest_similarity_pct===null?'No other captures yet':`${value.nearest_similarity_pct.toFixed(1)}% closest match`} · ${value.similar_count} similar captures · ${value.database_images} unique images${value.database_captures!==undefined?` · ${value.database_captures} captures stored`:''}`:'Waiting for a captured street image';
+  $('similarity-value').textContent=value.status==='ready'?`${value.nearest_similarity_pct===null?'No other captures yet':`${value.nearest_similarity_pct.toFixed(1)}% closest match`} · ${value.similar_count} similar captures · ${value.database_images} unique images${value.database_captures!==undefined?` · ${value.database_captures} captures stored`:''}`:'Waiting for a captured camera image';
   $('similarity-warning').hidden=value.status!=='ready'||!value.too_similar;
  }catch{
   if(!closed&&station===similarityStation&&similarityController===controller){$('similarity-value').textContent='Similarity check unavailable';$('similarity-warning').hidden=true}

@@ -17,6 +17,43 @@ x-worker: &worker
     retries: 12
 
 services:
+  carla:
+    profiles: [carla-docker]
+    image: carlasim/carla:0.9.16
+    container_name: carla-0.9.16
+    init: true
+    restart: unless-stopped
+    runtime: nvidia
+    network_mode: host
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: all
+      LP_NUM_THREADS: 12
+    command: [bash, CarlaUE4.sh, -RenderOffScreen, -nosound, -quality-level=Low, -ResX=320, -ResY=180]
+    healthcheck:
+      test: [CMD, bash, -c, "exec 3<>/dev/tcp/127.0.0.1/2000"]
+      interval: 10s
+      timeout: 5s
+      start_period: 90s
+      retries: 20
+  carla-client:
+    image: sdv-python:local
+    init: true
+    restart: unless-stopped
+    network_mode: host
+    command: [python3, -m, sdv.carla_service]
+    volumes: ["sdv-data:/data"]
+    environment:
+      CARLA_HOST: ${CARLA_HOST:-host.docker.internal}
+      CARLA_PORT: ${CARLA_PORT:-2000}
+      CARLA_RENDERER: ${CARLA_RENDERER:-nvidia}
+      CARLA_CAMERA_WIDTH: ${CARLA_CAMERA_WIDTH:-1920}
+      CARLA_CAMERA_HEIGHT: ${CARLA_CAMERA_HEIGHT:-1080}
+    healthcheck:
+      test: [CMD, python3, -c, "import httpx; c=httpx.Client(transport=httpx.HTTPTransport(uds='/data/carla-service.sock')); c.get('http://carla/health').raise_for_status()"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
   api:
     image: sdv-python:local
     build:
@@ -28,6 +65,7 @@ services:
     volumes: ["sdv-data:/data"]
     environment:
       MAPILLARY_ACCESS_TOKEN: ${MAPILLARY_ACCESS_TOKEN:-}
+      SIMULATOR_BACKEND: ${SIMULATOR_BACKEND:-carla}
     depends_on:
       recorder: {condition: service_healthy}
       maps: {condition: service_healthy}
@@ -48,7 +86,14 @@ services:
     command: [sil-kit-registry, --listen-uri, "silkit://0.0.0.0:8500"]
   plant:
     <<: *worker
-    environment: {ROLE: plant}
+    depends_on:
+      registry: {condition: service_started, restart: true}
+      carla-client: {condition: service_healthy}
+    environment:
+      ROLE: plant
+      CARLA_HOST: ${CARLA_HOST:-}
+      CARLA_PORT: ${CARLA_PORT:-2000}
+      CARLA_RENDERER: ${CARLA_RENDERER:-software}
   sensor:
     <<: *worker
     environment: {ROLE: sensor}

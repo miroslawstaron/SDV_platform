@@ -1,6 +1,7 @@
 export type Point={lat:number;lng:number};
-export type VehicleState=Point & {time:number;heading:number;speed:number;acceleration:number;lane_index:number;remaining:number;distance:number;progress:number;charge_pct:number;energy_wh:number;power_w:number;consumed_wh:number;regenerated_wh:number;arrived:boolean;speed_limit:number;red_light:boolean};
-export type Route={id:string;name:string;geometry:Point[];roads?:Point[][];start:Point;destination:Point;distance:number;attribution:string};
+export type XY={x:number;y:number};
+export type VehicleState=Point & {time:number;heading:number;speed:number;acceleration:number;lane_index:number;remaining:number;distance:number;progress:number;charge_pct:number;energy_wh:number;power_w:number;consumed_wh:number;regenerated_wh:number;arrived:boolean;speed_limit:number;red_light:boolean;backend?:string;carla_x?:number;carla_y?:number;carla_yaw?:number;carla_frame?:number;carla_actors?:Array<XY & {id:number;kind:string}>;pedestrian_count?:number;traffic_count?:number;obstacle_distance?:number;pedestrian_hazard?:boolean};
+export type Route={id:string;name:string;geometry:Point[];roads?:Point[][];start:Point;destination:Point;distance:number;attribution:string;backend?:string;world?:string;carla_geometry?:XY[];carla_roads?:XY[][];scenario?:{pedestrians:number;traffic_vehicles:number;speed_limit:number}};
 export type Event={event_id?:number;run_id?:string;module:string;source?:string;monotonic_ns?:number;protocol:string;kind:string;sim_time:number;message_id?:number;raw?:string;decoded?:Record<string,number|string|boolean>;sequence?:number;error?:string};
 export type SignalContract={name:string;unit:string;consumers:string[];vss?:string};
 export type MessageContract={id:number;name:string;producer:string;consumers:string[];signals:SignalContract[]};
