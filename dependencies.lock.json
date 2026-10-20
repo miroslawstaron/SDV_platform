@@ -68,7 +68,7 @@
                             "logo_sha256":  "433FC33A55C54170B45193B0A269A2EC14B16FE95F4A72B590F468F981D9E57C",
                             "source":  "User supplied Metriczone measurement ecosystem logo; original file copied unchanged"
                         },
-    "recorded_at":  "2026-10-14T06:30:39.3774801Z",
+    "recorded_at":  "2026-10-15T07:31:06.0956495Z",
     "frontend_dependencies":  {
                                   "leaflet":  "1.9.4",
                                   "mapillary-js":  "4.1.2",
@@ -87,30 +87,30 @@
     "images":  [
                    {
                        "digests":  [
-                                       "sdv-python@sha256:2297a23ec898031df88979291de0db07dc35c447296139e6c83300df96be3f93"
+                                       "sdv-python@sha256:c65ed6036279d39954af3a5cd17b652692e504b3894dc1e4f2ca532764a6b704"
                                    ],
-                       "id":  "sha256:2297a23ec898031df88979291de0db07dc35c447296139e6c83300df96be3f93",
+                       "id":  "sha256:c65ed6036279d39954af3a5cd17b652692e504b3894dc1e4f2ca532764a6b704",
                        "image":  "sdv-python:local"
                    },
                    {
                        "digests":  [
-                                       "sdv-native@sha256:a2c4da258e3ac7ce7406bd97356fc4c66cb931488a8e5da196bf76d8d7bd7644"
+                                       "sdv-native@sha256:2b5148a974b92d6c69830b7350793b5c22fdf33c838a9ea77ffa8d25bfdab075"
                                    ],
-                       "id":  "sha256:a2c4da258e3ac7ce7406bd97356fc4c66cb931488a8e5da196bf76d8d7bd7644",
+                       "id":  "sha256:2b5148a974b92d6c69830b7350793b5c22fdf33c838a9ea77ffa8d25bfdab075",
                        "image":  "sdv-native:local"
                    },
                    {
                        "digests":  [
-                                       "sdv-platform-web@sha256:8bba126b86aeb4cd7d54e9d406da143175e884bcc1ae7d08aeb184df4f7d23c5"
+                                       "sdv-platform-web@sha256:c9e408cba5dff4747722cad30569106e404cd5b9972df9724ab3da2336ca595c"
                                    ],
-                       "id":  "sha256:8bba126b86aeb4cd7d54e9d406da143175e884bcc1ae7d08aeb184df4f7d23c5",
+                       "id":  "sha256:c9e408cba5dff4747722cad30569106e404cd5b9972df9724ab3da2336ca595c",
                        "image":  "sdv-platform-web"
                    },
                    {
                        "digests":  [
-                                       "sdv-instruments@sha256:46e521bfe24e5c7045b1e7b62eaa84534fb85d20b67903c3acf864be8c61df9c"
+                                       "sdv-instruments@sha256:f5a34094100b8a63ce787cfef9f2e1b598762bd536b77fe3da78aaa5d775585e"
                                    ],
-                       "id":  "sha256:46e521bfe24e5c7045b1e7b62eaa84534fb85d20b67903c3acf864be8c61df9c",
+                       "id":  "sha256:f5a34094100b8a63ce787cfef9f2e1b598762bd536b77fe3da78aaa5d775585e",
                        "image":  "sdv-instruments:local"
                    },
                    {
